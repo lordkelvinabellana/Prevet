@@ -32,19 +32,25 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
       Decisions: external lookups run **before** any DB write (no orphan rows); any `AdapterError` → **503, nothing persisted**; a succeeded-but-empty valuation flows to the engine as **Check**. `AssessmentResponse` is the shared offer-payload type for Chunk 8.
 - [x] **Chunk 8 — UI** (`b2d70ff`, `a4291fe`): `/assess` form + hero offer card (`verdict.tsx`: colored Buy/Pass/Check band + mono max-offer + subtraction **ledger** + reasoning + flags + codes); quick-fill scenario presets + radix Guide dialog.
 - [x] **Chunk 9 — History + review** (uncommitted): `/assessments` list (RLS-scoped, recent first) + `/assessments/[id]` detail (reuses `Verdict`) + **Mark reviewed** server action (`assessments/actions.ts`). Also: **fonts** switched to IBM Plex Sans/Mono and the `--font-sans` wiring bug fixed.
-- [ ] **Chunk 10 — E2E + README**: Playwright happy path + finance-owing edge + unauth redirect; README.
+- [x] **Chunk 10 — E2E + README** (uncommitted): Playwright (`playwright.config.ts`, `tests/e2e/*`) — unauth-redirect (runs), happy path + finance-owing edge (skip without `E2E_EMAIL`/`E2E_PASSWORD`); full README. **Slice 1 complete.**
 
 Tests so far: **49 passing** (`npm test`). `npx tsc --noEmit` clean.
 
-## ▶ IMMEDIATE NEXT STEP — Chunk 10 (E2E + README)
-Slices 1–9 done; the full flow works in the UI. Next:
-1. **Playwright E2E**: unauth redirect → login; happy path (fill car → verdict
-   saved → appears in `/assessments` → mark reviewed); finance-owing edge
-   (Check). Vitest config already excludes `tests/e2e/**`.
-2. **README**: setup (`.env.local`, create a user), run, test, the product
-   rules, and the scenario tokens. See **`PLAN.md`** for the full plan.
+## ▶ STATUS — Slice 1 complete
+All 10 chunks done. The full flow works: sign in → assess a car → deterministic
+verdict + offer card → saved → review in `/assessments` → mark reviewed.
 
-Tests: **55 passing** (`npm test`). `npx tsc --noEmit` + `next build` clean.
+To fully verify the authenticated E2E locally:
+`E2E_EMAIL=… E2E_PASSWORD=… npm run test:e2e` (a real Supabase user).
+
+Tests: **55 Vitest passing** + Playwright (1 run / 2 skip without creds).
+`npx tsc --noEmit` + `next build` clean.
+
+### Possible next slices (not started)
+- Roles (creator vs reviewer); reviewer notes on assessments.
+- Real adapters (RedBook / PPSR) implementing the existing interfaces.
+- Generated Supabase types (`supabase gen types`) replacing hand-written `db.ts`.
+- Edit/re-run an assessment; filter/search the list.
 
 ## Local env needed before running the app (Chunk 6+)
 Create **`.env.local`** (gitignored) from `.env.example`:

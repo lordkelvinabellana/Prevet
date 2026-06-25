@@ -150,8 +150,8 @@ payload used by both `/assess` and the `/assessments/[id]` detail view.
 | 6 | Auth | ✅ `34671ef` | `proxy.ts` session refresh + gate, `(app)` group, login + Server Action, DAL, sign-out |
 | 7 | API orchestration | ✅ `eb39a77` | `/api/assess` + `runAssessment` service + tests |
 | 8 | UI | ✅ `b2d70ff`, `a4291fe` | `/assess` form + hero offer card (verdict + ledger); quick-fill presets + guide dialog |
-| 9 | History + review | ✅ (this chunk) | `/assessments` list + `/assessments/[id]` detail + "Mark reviewed" |
-| 10 | E2E + README | ⬜ next | Playwright happy path + finance-owing edge + unauth redirect; README |
+| 9 | History + review | ✅ `dac0c6a` | `/assessments` list + `/assessments/[id]` detail + "Mark reviewed" |
+| 10 | E2E + README | ✅ | Playwright (unauth-redirect + happy path + finance edge) + README. **Slice 1 complete.** |
 
 ---
 
