@@ -1,61 +1,121 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { formatAud } from "@/lib/pricing/explain";
-import type { Recommendation } from "@/lib/pricing/reason-codes";
 import { Button } from "@/components/ui/button";
+import { StatCards, type AssessmentStats } from "./stat-cards";
+import { AssessmentsToolbar } from "./assessments-toolbar";
+import { AssessmentsTable } from "./assessments-table";
+import { AssessmentCard } from "./assessment-card";
+import { needsPpsr, SORT_COLS, type AssessmentListItem, type SortCol } from "./_shared";
+import type { Recommendation } from "@/lib/pricing/reason-codes";
 
 export const metadata: Metadata = {
   title: "Assessments · Car Pre-Vetting Tool",
 };
 
-interface ListRow {
-  id: string;
-  created_at: string;
-  recommendation: Recommendation;
-  max_offer: number | string | null;
-  history_status: "not_checked" | "checked";
-  review_status: "pending" | "reviewed";
-  cars: { year: number; make: string; model: string } | null;
+const RESULT_CAP = 500;
+
+type SearchParams = Record<string, string | undefined>;
+
+function parseSort(v: string | undefined): SortCol {
+  return SORT_COLS.includes(v as SortCol) ? (v as SortCol) : "created_at";
 }
 
-const PILL: Record<Recommendation, string> = {
-  buy: "border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-400",
-  check:
-    "border-amber-600/30 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-500",
-  pass: "border-rose-600/30 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-950/30 dark:text-rose-400",
-};
+function computeStats(
+  rows: Pick<
+    AssessmentListItem,
+    "recommendation" | "history_status" | "review_status" | "max_offer"
+  >[],
+): AssessmentStats {
+  const s: AssessmentStats = {
+    total: rows.length,
+    buy: 0,
+    check: 0,
+    pass: 0,
+    awaitingPpsr: 0,
+    awaitingReview: 0,
+  };
+  for (const r of rows) {
+    if (r.recommendation === "buy") s.buy++;
+    else if (r.recommendation === "check") s.check++;
+    else if (r.recommendation === "pass") s.pass++;
+    if (needsPpsr(r)) s.awaitingPpsr++;
+    if (r.review_status === "pending") s.awaitingReview++;
+  }
+  return s;
+}
 
-const LABEL: Record<Recommendation, string> = {
-  buy: "Buy",
-  check: "Check",
-  pass: "Pass",
-};
+export default async function AssessmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+  const verdict = (["buy", "check", "pass"].includes(sp.verdict ?? "")
+    ? sp.verdict
+    : undefined) as Recommendation | undefined;
+  const status = (["needs_ppsr", "needs_review"].includes(sp.status ?? "")
+    ? sp.status
+    : undefined) as "needs_ppsr" | "needs_review" | undefined;
+  const sort = parseSort(sp.sort);
+  const dir =
+    sp.dir === "asc" ? "asc" : sp.dir === "desc" ? "desc" : sort === "created_at" ? "desc" : "asc";
+  const q = (sp.q ?? "").trim();
 
-const dateFmt = new Intl.DateTimeFormat("en-AU", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-export default async function AssessmentsPage() {
   const supabase = await createClient();
-  const { data, error } = await supabase
+
+  // Stats are global (all verdicts), independent of the active filter.
+  const { data: statData } = await supabase
+    .from("assessments")
+    .select("recommendation, history_status, review_status, max_offer");
+  const stats = computeStats(
+    (statData ?? []) as unknown as Parameters<typeof computeStats>[0],
+  );
+
+  // Main query: DB-side filter + sort + cap. Text search is applied in memory
+  // (over the joined car) since it spans an embedded resource and the set is small.
+  let query = supabase
     .from("assessments")
     .select(
-      "id, created_at, recommendation, max_offer, history_status, review_status, cars(year, make, model)",
+      "id, created_at, recommendation, max_offer, history_status, review_status, cars(year, make, model, plate, seller_asking_price)",
     )
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .order(sort, { ascending: dir === "asc" })
+    .limit(RESULT_CAP);
+  if (verdict) query = query.eq("recommendation", verdict);
+  if (status === "needs_ppsr") {
+    query = query
+      .eq("history_status", "not_checked")
+      .not("max_offer", "is", null)
+      .in("recommendation", ["buy", "check"]);
+  }
+  if (status === "needs_review") query = query.eq("review_status", "pending");
 
-  const rows = (data ?? []) as unknown as ListRow[];
+  const { data, error } = await query;
+  let rows = (data ?? []) as unknown as AssessmentListItem[];
+
+  if (q) {
+    const needle = q.toLowerCase();
+    rows = rows.filter((r) => {
+      const c = r.cars;
+      return (
+        !!c &&
+        [c.make, c.model, c.plate ?? ""].some((s) =>
+          s.toLowerCase().includes(needle),
+        )
+      );
+    });
+  }
+
+  const filtersActive = Boolean(verdict || status || q);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-10">
-      <header className="mb-8 flex items-end justify-between gap-4">
+    <div className="mx-auto w-full max-w-5xl px-6 py-10">
+      <header className="mb-6 flex items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Assessments</h1>
           <p className="text-muted-foreground">
-            Every pre-vetted car, most recent first.
+            Every pre-vetted car — sort, filter, and search the queue.
           </p>
         </div>
         <Button asChild size="lg">
@@ -67,7 +127,7 @@ export default async function AssessmentsPage() {
         <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Couldn&apos;t load assessments. Try again.
         </p>
-      ) : rows.length === 0 ? (
+      ) : stats.total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-12 text-center">
           <p className="font-medium">No assessments yet</p>
           <p className="max-w-xs text-sm text-muted-foreground">
@@ -78,55 +138,45 @@ export default async function AssessmentsPage() {
           </Button>
         </div>
       ) : (
-        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border">
-          {rows.map((r) => (
-            <li key={r.id}>
-              <Link
-                href={`/assessments/${r.id}`}
-                className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/50"
-              >
-                <span
-                  className={`inline-flex w-16 shrink-0 justify-center rounded-md border px-2 py-1 text-xs font-semibold ${PILL[r.recommendation]}`}
-                >
-                  {LABEL[r.recommendation]}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">
-                    {r.cars
-                      ? `${r.cars.year} ${r.cars.make} ${r.cars.model}`
-                      : "Unknown car"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {dateFmt.format(new Date(r.created_at))}
-                  </span>
-                </span>
-                <span className="shrink-0 text-right">
-                  <span className="block font-mono text-sm font-medium tabular-nums">
-                    {r.max_offer == null ? "—" : formatAud(Number(r.max_offer))}
-                  </span>
-                  {r.history_status === "not_checked" &&
-                  r.max_offer != null &&
-                  (r.recommendation === "buy" ||
-                    r.recommendation === "check") ? (
-                    <span className="block text-xs text-amber-600 dark:text-amber-500">
-                      PPSR pending
-                    </span>
-                  ) : (
-                    <span
-                      className={`block text-xs ${
-                        r.review_status === "reviewed"
-                          ? "text-emerald-600 dark:text-emerald-500"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {r.review_status === "reviewed" ? "Reviewed" : "Pending"}
-                    </span>
-                  )}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-6">
+          <StatCards stats={stats} />
+
+          <Suspense fallback={null}>
+            <AssessmentsToolbar />
+          </Suspense>
+
+          <p className="text-sm text-muted-foreground">
+            {rows.length === stats.total
+              ? `${stats.total} assessment${stats.total === 1 ? "" : "s"}`
+              : `${rows.length} of ${stats.total}`}
+            {rows.length === RESULT_CAP ? ` (showing first ${RESULT_CAP})` : ""}
+          </p>
+
+          {rows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-12 text-center">
+              <p className="font-medium">No matches</p>
+              <p className="max-w-xs text-sm text-muted-foreground">
+                No assessments match the current filters.
+              </p>
+              {filtersActive && (
+                <Button asChild variant="outline" size="sm" className="mt-1">
+                  <Link href="/assessments">Clear filters</Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:block">
+                <AssessmentsTable rows={rows} params={sp} />
+              </div>
+              <div className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border md:hidden">
+                {rows.map((row) => (
+                  <AssessmentCard key={row.id} row={row} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
