@@ -28,23 +28,23 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
       ✅ **Migration `0001_init` APPLIED** via Supabase MCP (2026-06-25). All 4 tables exist with RLS enabled.
 - [x] **Chunk 6 — Auth** (uncommitted): login page + Server Action (`src/app/login/*`), `src/proxy.ts` session refresh + optimistic gate, `(app)/` route group with DB-backed gate (`requireUser` in layout), sign-out, DAL (`src/lib/auth/dal.ts`), session helper (`src/lib/supabase/session.ts`), `Input` component.
       ⚠️ **Next.js 16: `middleware` is renamed to `proxy`** — entry is `src/proxy.ts` (Node runtime). Build + 49 tests green. Needs a real Supabase user to test sign-in end-to-end.
-- [ ] **Chunk 7 — API orchestration**: `src/app/api/assess/route.ts` — validate → save car → run mock valuation + history → run engine → save assessment → return offer payload. Handle adapter failures (AdapterError) gracefully.
-- [ ] **Chunk 8 — UI**: car form + **offer card (hero)** on `/assess` (shadcn, minimal).
+- [x] **Chunk 7 — API orchestration** (uncommitted): `src/app/api/assess/route.ts` (auth → validate → service) + `src/lib/assess/service.ts` (`runAssessment`: lookups → engine → persist → offer payload) + `tests/assess-service.test.ts`.
+      Decisions: external lookups run **before** any DB write (no orphan rows); any `AdapterError` → **503, nothing persisted**; a succeeded-but-empty valuation flows to the engine as **Check**. `AssessmentResponse` is the shared offer-payload type for Chunk 8.
+- [ ] **Chunk 8 — UI**: car form + **offer card (hero)** on `/assess` (shadcn, minimal). POST to `/api/assess`, render `AssessmentResponse`.
 - [ ] **Chunk 9 — History + review**: `/assessments` list + "Mark Reviewed" action.
 - [ ] **Chunk 10 — E2E + README**: Playwright happy path + finance-owing edge + unauth redirect.
 
 Tests so far: **49 passing** (`npm test`). `npx tsc --noEmit` clean.
 
-## ▶ IMMEDIATE NEXT STEP — Chunk 7 (API orchestration)
-Migration applied and auth wired. Next: `src/app/api/assess/route.ts` —
-validate (zod) → save car → run mock valuation + history → run engine →
-save assessment → return offer payload. Verify auth inside the handler with
-`getUser()`/`requireUser()` from `src/lib/auth/dal.ts` (the proxy excludes
-`/api`). Handle `AdapterError` gracefully.
+## ▶ IMMEDIATE NEXT STEP — Chunk 8 (UI)
+API is live at `POST /api/assess`. Next: build `/assess` inside the `(app)`
+group — a minimal shadcn car form that POSTs the validated fields and renders
+the returned `AssessmentResponse` as a hero **offer card** (recommendation
+badge, max offer, reasoning, breakdown). Reuse `parseCarInput`/`formatAud`.
+Trigger tokens (type into plate/VIN) force scenarios: STOLEN, WOVR, FINANCE,
+NOVAL, FAILVAL, FAILHIST.
 
-To test Chunk 6 end-to-end first: create a user in the Supabase dashboard
-(Authentication → Users → Add user) or enable email signup, then `npm run dev`
-and sign in at `/login`.
+Tests: **55 passing** (`npm test`). `npx tsc --noEmit` + `next build` clean.
 
 ## Local env needed before running the app (Chunk 6+)
 Create **`.env.local`** (gitignored) from `.env.example`:
