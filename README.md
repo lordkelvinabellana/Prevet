@@ -10,7 +10,9 @@ car; the tool fetches a (mock) valuation and history check, runs a
 > a plain-English explanation so a human can check the math.
 
 For the full plan, architecture, and data model see **[PLAN.md](./PLAN.md)**;
-for live build status see **[PROGRESS.md](./PROGRESS.md)**.
+for live build status see **[PROGRESS.md](./PROGRESS.md)**; for a guided,
+plain-English tour of the codebase and the pricing logic see
+**[CODEBASE_GUIDE.md](./CODEBASE_GUIDE.md)**.
 
 ## Stack
 
