@@ -19,6 +19,12 @@
 /blob-report/
 /playwright/.cache/
 
+# graphify (generated knowledge graph — regenerate with `graphify update .`)
+/graphify-out/
+
+# claude code local overrides (shared settings.json is committed)
+.claude/settings.local.json
+
 # next.js
 /.next/
 /out/
