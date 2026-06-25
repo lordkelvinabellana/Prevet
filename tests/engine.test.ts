@@ -159,3 +159,15 @@ describe("assess — breakdown is always populated for auditability", () => {
     expect(assess(input)).toEqual(assess(input));
   });
 });
+
+describe("assess — price-only / provisional (history not yet checked)", () => {
+  it("skips the history hard stops and flags the result provisional", () => {
+    const r = assess(baseInput({ history: null }));
+    expect(r.provisional).toBe(true);
+    expect(r.recommendation).toBe("buy"); // decided on price alone
+  });
+
+  it("a checked history yields a non-provisional result", () => {
+    expect(assess(baseInput()).provisional).toBe(false);
+  });
+});

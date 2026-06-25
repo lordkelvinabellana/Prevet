@@ -41,4 +41,9 @@ describe("explain (template, no AI)", () => {
     expect(text.toLowerCase()).toContain("no valuation");
     expect(text).not.toContain("Calculation:");
   });
+
+  it("notes when a result is provisional (history not yet checked)", () => {
+    const text = explain(assess(baseInput({ history: null })));
+    expect(text.toLowerCase()).toContain("provisional");
+  });
 });

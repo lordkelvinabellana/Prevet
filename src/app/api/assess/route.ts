@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import { parseCarInput } from "@/lib/validation/schema";
-import { runAssessment } from "@/lib/assess/service";
+import { runPriceAssessment } from "@/lib/assess/service";
 
 /**
  * POST /api/assess — run a deterministic pre-vetting assessment for one car.
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const result = await runAssessment({ supabase, input: parsed.data });
+  const result = await runPriceAssessment({ supabase, input: parsed.data });
 
   if (!result.ok) {
     return NextResponse.json(

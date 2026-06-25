@@ -55,6 +55,7 @@ export interface AssessmentRow {
   reasoning: string;
   reason_codes: ReasonCode[];
   breakdown: unknown | null;
+  history_status: "not_checked" | "checked";
   review_status: "pending" | "reviewed";
   reviewed_by: string | null;
   reviewed_at: string | null;

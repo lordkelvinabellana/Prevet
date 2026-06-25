@@ -42,7 +42,9 @@ export interface PricingInput {
   sellerAskingPrice: number;
   repairCost: number;
   valuation: ValuationFacts;
-  history: HistoryFacts;
+  /** Known history facts, or `null` when the PPSR check hasn't been run yet
+   *  (the price-only / provisional phase). */
+  history: HistoryFacts | null;
   /** Optional overrides — default to the module constants. */
   riskBufferRate?: number;
   closeBandRate?: number;
@@ -64,6 +66,9 @@ export interface PricingResult {
   /** Deciding code first; any additional contributing codes follow. */
   reasonCodes: ReasonCode[];
   breakdown: PricingBreakdown;
+  /** True when produced without a history check (price-only). Becomes false
+   *  once PPSR history is incorporated in the final assessment. */
+  provisional: boolean;
 }
 
 /** Round to whole AUD dollars. */
@@ -122,22 +127,32 @@ export function assess(input: PricingInput): PricingResult {
     closeBandRate,
   };
 
+  // Provisional when we haven't run a history (PPSR) check yet.
+  const provisional = input.history === null;
+
   const result = (
     recommendation: Recommendation,
     ...reasonCodes: ReasonCode[]
-  ): PricingResult => ({ maxOffer, recommendation, reasonCodes, breakdown });
+  ): PricingResult => ({
+    maxOffer,
+    recommendation,
+    reasonCodes,
+    breakdown,
+    provisional,
+  });
 
-  // 1 & 2: hard stops from history — always Pass.
-  if (input.history.stolen) {
-    return result("pass", REASON_CODE.HISTORY_STOLEN);
-  }
-  if (input.history.writtenOff) {
-    return result("pass", REASON_CODE.HISTORY_WRITTEN_OFF);
-  }
-
-  // 3: finance owing needs human verification before buying.
-  if (input.history.financeOwing) {
-    return result("check", REASON_CODE.HISTORY_FINANCE_OWING);
+  // 1–3: hard stops from history — only once history has been checked. In the
+  // price-only phase (history === null) we skip these and decide on price alone.
+  if (input.history) {
+    if (input.history.stolen) {
+      return result("pass", REASON_CODE.HISTORY_STOLEN);
+    }
+    if (input.history.writtenOff) {
+      return result("pass", REASON_CODE.HISTORY_WRITTEN_OFF);
+    }
+    if (input.history.financeOwing) {
+      return result("check", REASON_CODE.HISTORY_FINANCE_OWING);
+    }
   }
 
   // 4: cannot price without a valuation.

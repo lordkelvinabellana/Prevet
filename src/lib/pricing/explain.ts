@@ -54,5 +54,9 @@ export function explain(result: PricingResult): string {
     );
   }
 
+  if (result.provisional) {
+    lines.push("Provisional — history (PPSR) not yet checked.");
+  }
+
   return lines.join(" ");
 }

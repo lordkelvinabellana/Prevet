@@ -15,9 +15,16 @@ import { mockHistoryAdapter } from "@/lib/adapters/history.mock";
 import type { CarInput } from "@/lib/validation/schema";
 
 /**
- * The offer payload returned to the client and used to render the offer card.
- * Everything price/recommendation-related comes straight from the deterministic
- * engine — never from an LLM.
+ * Assessment is a two-phase flow so we never pay for a PPSR search on a car
+ * we'll Pass on anyway:
+ *
+ *   Phase 1 — runPriceAssessment(): valuation + a *provisional*, price-only
+ *             verdict. No PPSR. Persists the car/valuation/assessment.
+ *   Phase 2 — runHistoryCheck(): only when the user opts in. Runs the (paid)
+ *             PPSR check, re-runs the engine with history, and finalizes the
+ *             assessment in place (a Buy can flip to Pass/Check).
+ *
+ * The deterministic engine remains the sole decider of price/recommendation.
  */
 export interface AssessmentResponse {
   assessmentId: string;
@@ -29,36 +36,39 @@ export interface AssessmentResponse {
   reasoning: string;
   breakdown: PricingBreakdown;
   valuation: ValuationResult;
-  history: HistoryResult;
+  /** Null until a PPSR history check has been run (phase 2). */
+  history: HistoryResult | null;
+  /** True until PPSR history has been incorporated. */
+  provisional: boolean;
+  /** True when a (paid) PPSR check is worth offering: still provisional,
+   *  priced, and a Buy/Check. A price Pass is never PPSR-eligible. */
+  ppsrEligible: boolean;
 }
 
 export type AssessmentServiceResult =
   | { ok: true; data: AssessmentResponse }
   | { ok: false; status: number; error: string; code?: string };
 
-export interface RunAssessmentDeps {
-  supabase: SupabaseClient;
-  input: CarInput;
-  /** Injectable for tests; default to the deterministic mocks. */
-  valuationAdapter?: ValuationAdapter;
-  historyAdapter?: HistoryAdapter;
+function isPpsrEligible(rec: Recommendation, maxOffer: number | null): boolean {
+  return maxOffer !== null && (rec === "buy" || rec === "check");
 }
 
-/**
- * Orchestrate a single car assessment:
- *   external lookups -> deterministic engine -> persist -> offer payload.
- *
- * External lookups run BEFORE any database write so a simulated adapter outage
- * never leaves an orphaned car row. A succeeded-but-empty valuation (selected
- * value null) is a valid result and flows through to the engine as a Check;
- * only a thrown AdapterError is treated as an outage (503).
- */
-export async function runAssessment({
+// ---------------------------------------------------------------------------
+// Phase 1 — price-only assessment (no PPSR)
+// ---------------------------------------------------------------------------
+
+export interface RunPriceAssessmentDeps {
+  supabase: SupabaseClient;
+  input: CarInput;
+  /** Injectable for tests; defaults to the deterministic mock. */
+  valuationAdapter?: ValuationAdapter;
+}
+
+export async function runPriceAssessment({
   supabase,
   input,
   valuationAdapter = mockValuationAdapter,
-  historyAdapter = mockHistoryAdapter,
-}: RunAssessmentDeps): Promise<AssessmentServiceResult> {
+}: RunPriceAssessmentDeps): Promise<AssessmentServiceResult> {
   const identity: CarIdentity = {
     plate: input.plate ?? null,
     vin: input.vin ?? null,
@@ -69,14 +79,10 @@ export async function runAssessment({
     kilometres: input.kilometres,
   };
 
-  // 1. External data lookups — before any writes.
+  // Valuation only — PPSR is deferred to a separate, user-approved step.
   let valuation: ValuationResult;
-  let history: HistoryResult;
   try {
-    [valuation, history] = await Promise.all([
-      valuationAdapter.getValuation(identity),
-      historyAdapter.getHistory(identity),
-    ]);
+    valuation = await valuationAdapter.getValuation(identity);
   } catch (err) {
     if (err instanceof AdapterError) {
       return { ok: false, status: 503, error: err.message, code: err.code };
@@ -84,22 +90,15 @@ export async function runAssessment({
     throw err;
   }
 
-  // 2. Deterministic engine — the ONLY thing that decides price/recommendation.
+  // Deterministic engine, price-only (history === null => provisional).
   const pricing = assess({
     sellerAskingPrice: input.sellerAskingPrice,
     repairCost: input.repairCost,
     valuation: { selectedWholesaleValue: valuation.selectedWholesaleValue },
-    history: {
-      financeOwing: history.financeOwing,
-      stolen: history.stolen,
-      writtenOff: history.writtenOff,
-    },
+    history: null,
   });
   const reasoning = explain(pricing);
 
-  // 3. Persist car -> valuation -> history -> assessment.
-  //    created_by is left to the DB default (auth.uid()), which the RLS insert
-  //    policies also check against, so it matches the signed-in user.
   const { data: car, error: carErr } = await supabase
     .from("cars")
     .insert({
@@ -135,28 +134,12 @@ export async function runAssessment({
     return { ok: false, status: 500, error: "Failed to save valuation." };
   }
 
-  const { data: hist, error: histErr } = await supabase
-    .from("history_checks")
-    .insert({
-      car_id: car.id,
-      source: history.source,
-      finance_owing: history.financeOwing,
-      stolen: history.stolen,
-      written_off: history.writtenOff,
-      notes: history.notes,
-    })
-    .select("id")
-    .single();
-  if (histErr || !hist) {
-    return { ok: false, status: 500, error: "Failed to save history check." };
-  }
-
   const { data: assessment, error: aErr } = await supabase
     .from("assessments")
     .insert({
       car_id: car.id,
       valuation_id: val.id,
-      history_check_id: hist.id,
+      history_check_id: null,
       repair_cost: input.repairCost,
       risk_buffer: pricing.breakdown.riskBuffer,
       max_offer: pricing.maxOffer,
@@ -164,6 +147,7 @@ export async function runAssessment({
       reasoning,
       reason_codes: pricing.reasonCodes,
       breakdown: pricing.breakdown,
+      history_status: "not_checked",
     })
     .select("id")
     .single();
@@ -183,7 +167,158 @@ export async function runAssessment({
       reasoning,
       breakdown: pricing.breakdown,
       valuation,
+      history: null,
+      provisional: true,
+      ppsrEligible: isPpsrEligible(pricing.recommendation, pricing.maxOffer),
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — PPSR history check + finalize
+// ---------------------------------------------------------------------------
+
+interface StoredAssessment {
+  id: string;
+  car_id: string;
+  history_status: "not_checked" | "checked";
+  breakdown: PricingBreakdown | null;
+  cars: {
+    plate: string | null;
+    vin: string | null;
+    year: number;
+    make: string;
+    model: string;
+    trim: string | null;
+    kilometres: number;
+  } | null;
+  valuations: { source: string } | null;
+}
+
+export interface RunHistoryCheckDeps {
+  supabase: SupabaseClient;
+  assessmentId: string;
+  /** Injectable for tests; defaults to the deterministic mock. */
+  historyAdapter?: HistoryAdapter;
+}
+
+export async function runHistoryCheck({
+  supabase,
+  assessmentId,
+  historyAdapter = mockHistoryAdapter,
+}: RunHistoryCheckDeps): Promise<AssessmentServiceResult> {
+  const { data, error } = await supabase
+    .from("assessments")
+    .select(
+      "id, car_id, history_status, breakdown, cars(plate, vin, year, make, model, trim, kilometres), valuations(source)",
+    )
+    .eq("id", assessmentId)
+    .maybeSingle();
+
+  const row = data as StoredAssessment | null;
+  if (error || !row || !row.breakdown || !row.cars) {
+    return { ok: false, status: 404, error: "Assessment not found." };
+  }
+  if (row.history_status === "checked") {
+    return {
+      ok: false,
+      status: 409,
+      error: "A PPSR check has already been run for this assessment.",
+    };
+  }
+
+  const identity: CarIdentity = {
+    plate: row.cars.plate,
+    vin: row.cars.vin,
+    year: row.cars.year,
+    make: row.cars.make,
+    model: row.cars.model,
+    trim: row.cars.trim,
+    kilometres: row.cars.kilometres,
+  };
+
+  // The paid PPSR lookup.
+  let history: HistoryResult;
+  try {
+    history = await historyAdapter.getHistory(identity);
+  } catch (err) {
+    if (err instanceof AdapterError) {
+      return { ok: false, status: 503, error: err.message, code: err.code };
+    }
+    throw err;
+  }
+
+  // Re-run the engine with the now-known history, reusing the stored numbers.
+  const b = row.breakdown;
+  const pricing = assess({
+    sellerAskingPrice: b.sellerAskingPrice,
+    repairCost: b.repairCost,
+    valuation: { selectedWholesaleValue: b.selectedWholesaleValue },
+    history: {
+      financeOwing: history.financeOwing,
+      stolen: history.stolen,
+      writtenOff: history.writtenOff,
+    },
+    riskBufferRate: b.riskBufferRate,
+    closeBandRate: b.closeBandRate,
+  });
+  const reasoning = explain(pricing);
+
+  const { data: hist, error: histErr } = await supabase
+    .from("history_checks")
+    .insert({
+      car_id: row.car_id,
+      source: history.source,
+      finance_owing: history.financeOwing,
+      stolen: history.stolen,
+      written_off: history.writtenOff,
+      notes: history.notes,
+    })
+    .select("id")
+    .single();
+  if (histErr || !hist) {
+    return { ok: false, status: 500, error: "Failed to save history check." };
+  }
+
+  const { error: updErr } = await supabase
+    .from("assessments")
+    .update({
+      history_check_id: hist.id,
+      history_status: "checked",
+      recommendation: pricing.recommendation,
+      max_offer: pricing.maxOffer,
+      risk_buffer: pricing.breakdown.riskBuffer,
+      reasoning,
+      reason_codes: pricing.reasonCodes,
+      breakdown: pricing.breakdown,
+    })
+    .eq("id", assessmentId);
+  if (updErr) {
+    return { ok: false, status: 500, error: "Failed to finalize the assessment." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      assessmentId: row.id,
+      carId: row.car_id,
+      recommendation: pricing.recommendation,
+      maxOffer: pricing.maxOffer,
+      riskBuffer: pricing.breakdown.riskBuffer,
+      reasonCodes: pricing.reasonCodes,
+      reasoning,
+      breakdown: pricing.breakdown,
+      valuation: {
+        source: row.valuations?.source ?? "unknown",
+        wholesaleLow: null,
+        wholesaleHigh: null,
+        retailLow: null,
+        retailHigh: null,
+        selectedWholesaleValue: b.selectedWholesaleValue,
+      },
       history,
+      provisional: false,
+      ppsrEligible: false,
     },
   };
 }
