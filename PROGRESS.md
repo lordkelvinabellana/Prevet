@@ -43,8 +43,9 @@ verdict + offer card → saved → review in `/assessments` → mark reviewed.
 To fully verify the authenticated E2E locally:
 `E2E_EMAIL=… E2E_PASSWORD=… npm run test:e2e` (a real Supabase user).
 
-Tests: **55 Vitest passing** + Playwright (1 run / 2 skip without creds).
-`npx tsc --noEmit` + `next build` clean.
+Tests: **55 Vitest passing** + Playwright **3/3 passing verified against the
+live Supabase DB** (full happy path: login → assess → persist → list → detail →
+mark reviewed). `npx tsc --noEmit` + `next build` clean.
 
 ### Possible next slices (not started)
 - Roles (creator vs reviewer); reviewer notes on assessments.
