@@ -30,19 +30,19 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
       ⚠️ **Next.js 16: `middleware` is renamed to `proxy`** — entry is `src/proxy.ts` (Node runtime). Build + 49 tests green. Needs a real Supabase user to test sign-in end-to-end.
 - [x] **Chunk 7 — API orchestration** (uncommitted): `src/app/api/assess/route.ts` (auth → validate → service) + `src/lib/assess/service.ts` (`runAssessment`: lookups → engine → persist → offer payload) + `tests/assess-service.test.ts`.
       Decisions: external lookups run **before** any DB write (no orphan rows); any `AdapterError` → **503, nothing persisted**; a succeeded-but-empty valuation flows to the engine as **Check**. `AssessmentResponse` is the shared offer-payload type for Chunk 8.
-- [x] **Chunk 8 — UI** (uncommitted): `/assess` in the `(app)` group — `page.tsx`, `assess-form.tsx` (client; POSTs to `/api/assess`, maps 400 field errors / 503 outage / 500), `verdict.tsx` (hero offer card: colored Buy/Pass/Check band + mono max-offer + subtraction **ledger** + reasoning + history flags + reason codes). Added `Input` already; uses Geist Mono for all figures. Built-in magic-plate hint for demoing scenarios. Smoke-tested: /login 200, /assess→307, /api/assess→401.
-- [ ] **Chunk 9 — History + review**: `/assessments` list + "Mark Reviewed" action. (Home page already links here — currently 404s until built.)
-- [ ] **Chunk 10 — E2E + README**: Playwright happy path + finance-owing edge + unauth redirect.
+- [x] **Chunk 8 — UI** (`b2d70ff`, `a4291fe`): `/assess` form + hero offer card (`verdict.tsx`: colored Buy/Pass/Check band + mono max-offer + subtraction **ledger** + reasoning + flags + codes); quick-fill scenario presets + radix Guide dialog.
+- [x] **Chunk 9 — History + review** (uncommitted): `/assessments` list (RLS-scoped, recent first) + `/assessments/[id]` detail (reuses `Verdict`) + **Mark reviewed** server action (`assessments/actions.ts`). Also: **fonts** switched to IBM Plex Sans/Mono and the `--font-sans` wiring bug fixed.
+- [ ] **Chunk 10 — E2E + README**: Playwright happy path + finance-owing edge + unauth redirect; README.
 
 Tests so far: **49 passing** (`npm test`). `npx tsc --noEmit` clean.
 
-## ▶ IMMEDIATE NEXT STEP — Chunk 9 (History + review)
-`/assess` UI is live and testable. Next: build `/assessments` in the `(app)`
-group — a list of saved assessments (most recent first; select with the
-RLS-scoped server client) and a per-row/detail **"Mark reviewed"** action that
-sets `review_status='reviewed'`, `reviewed_by=auth.uid()`, `reviewed_at=now()`
-(the `assessments_update_authenticated` RLS policy already allows this). Reuse
-`Verdict`/`formatAud` for the detail view. Fix the home "View assessments" link.
+## ▶ IMMEDIATE NEXT STEP — Chunk 10 (E2E + README)
+Slices 1–9 done; the full flow works in the UI. Next:
+1. **Playwright E2E**: unauth redirect → login; happy path (fill car → verdict
+   saved → appears in `/assessments` → mark reviewed); finance-owing edge
+   (Check). Vitest config already excludes `tests/e2e/**`.
+2. **README**: setup (`.env.local`, create a user), run, test, the product
+   rules, and the scenario tokens. See **`PLAN.md`** for the full plan.
 
 Tests: **55 passing** (`npm test`). `npx tsc --noEmit` + `next build` clean.
 
