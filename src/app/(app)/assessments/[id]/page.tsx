@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Verdict } from "../../assess/verdict";
 import { Button } from "@/components/ui/button";
+import { PpsrButton } from "../../assess/ppsr-button";
 import { markReviewed } from "../actions";
 import type { PricingBreakdown } from "@/lib/pricing/engine";
 import type { Recommendation, ReasonCode } from "@/lib/pricing/reason-codes";
@@ -22,6 +23,7 @@ interface DetailRow {
   reasoning: string;
   reason_codes: ReasonCode[];
   breakdown: PricingBreakdown | null;
+  history_status: "not_checked" | "checked";
   review_status: "pending" | "reviewed";
   reviewed_at: string | null;
   created_at: string;
@@ -90,13 +92,20 @@ export default async function AssessmentDetailPage({
       retailHigh: null,
       selectedWholesaleValue: row.breakdown.selectedWholesaleValue,
     },
-    history: {
-      source: hist?.source ?? "unknown",
-      financeOwing: hist?.finance_owing ?? false,
-      stolen: hist?.stolen ?? false,
-      writtenOff: hist?.written_off ?? false,
-      notes: hist?.notes ?? null,
-    },
+    history: hist
+      ? {
+          source: hist.source,
+          financeOwing: hist.finance_owing,
+          stolen: hist.stolen,
+          writtenOff: hist.written_off,
+          notes: hist.notes,
+        }
+      : null,
+    provisional: row.history_status === "not_checked",
+    ppsrEligible:
+      row.history_status === "not_checked" &&
+      row.breakdown.maxOffer !== null &&
+      (row.recommendation === "buy" || row.recommendation === "check"),
   };
 
   const review = markReviewed.bind(null, row.id);
@@ -129,6 +138,22 @@ export default async function AssessmentDetailPage({
       </header>
 
       <Verdict result={result} />
+
+      {/* Deferred PPSR — only offered while still in play (Buy/Check). */}
+      {result.ppsrEligible && (
+        <div className="mt-6 rounded-xl border border-border p-4">
+          <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+            History check
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              PPSR not yet run (~$2 per search). Run it to confirm the car
+              isn&apos;t stolen, written off, or under finance.
+            </p>
+            <PpsrButton assessmentId={row.id} />
+          </div>
+        </div>
+      )}
 
       {/* Human review */}
       <div className="mt-6 rounded-xl border border-border p-4">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Verdict } from "./verdict";
+import { PpsrButton } from "./ppsr-button";
 import { Guide } from "./guide";
 import { EMPTY_FORM, PRESETS, DOT, type FormValues } from "./presets";
 import type { AssessmentResponse } from "@/lib/assess/service";
@@ -321,7 +322,15 @@ export function AssessForm() {
         {/* Result */}
         <div className="lg:sticky lg:top-6 lg:self-start">
           {result ? (
-            <Verdict result={result} />
+            <div className="flex flex-col gap-4">
+              <Verdict result={result} />
+              {result.ppsrEligible && (
+                <PpsrButton
+                  assessmentId={result.assessmentId}
+                  onResult={setResult}
+                />
+              )}
+            </div>
           ) : (
             <div className="flex min-h-64 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border p-8 text-center">
               <p className="font-medium">

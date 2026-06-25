@@ -14,6 +14,7 @@ interface ListRow {
   created_at: string;
   recommendation: Recommendation;
   max_offer: number | string | null;
+  history_status: "not_checked" | "checked";
   review_status: "pending" | "reviewed";
   cars: { year: number; make: string; model: string } | null;
 }
@@ -41,7 +42,7 @@ export default async function AssessmentsPage() {
   const { data, error } = await supabase
     .from("assessments")
     .select(
-      "id, created_at, recommendation, max_offer, review_status, cars(year, make, model)",
+      "id, created_at, recommendation, max_offer, history_status, review_status, cars(year, make, model)",
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -103,15 +104,24 @@ export default async function AssessmentsPage() {
                   <span className="block font-mono text-sm font-medium tabular-nums">
                     {r.max_offer == null ? "—" : formatAud(Number(r.max_offer))}
                   </span>
-                  <span
-                    className={`block text-xs ${
-                      r.review_status === "reviewed"
-                        ? "text-emerald-600 dark:text-emerald-500"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {r.review_status === "reviewed" ? "Reviewed" : "Pending"}
-                  </span>
+                  {r.history_status === "not_checked" &&
+                  r.max_offer != null &&
+                  (r.recommendation === "buy" ||
+                    r.recommendation === "check") ? (
+                    <span className="block text-xs text-amber-600 dark:text-amber-500">
+                      PPSR pending
+                    </span>
+                  ) : (
+                    <span
+                      className={`block text-xs ${
+                        r.review_status === "reviewed"
+                          ? "text-emerald-600 dark:text-emerald-500"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {r.review_status === "reviewed" ? "Reviewed" : "Pending"}
+                    </span>
+                  )}
                 </span>
               </Link>
             </li>

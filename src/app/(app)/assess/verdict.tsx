@@ -79,12 +79,22 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
   const hasValuation = breakdown.maxOffer !== null;
 
   const flags: { tone: "rose" | "amber"; text: string }[] = [];
-  if (history.stolen) flags.push({ tone: "rose", text: "Reported stolen" });
-  if (history.writtenOff) flags.push({ tone: "rose", text: "Written off" });
-  if (history.financeOwing) flags.push({ tone: "amber", text: "Finance owing" });
+  if (history) {
+    if (history.stolen) flags.push({ tone: "rose", text: "Reported stolen" });
+    if (history.writtenOff) flags.push({ tone: "rose", text: "Written off" });
+    if (history.financeOwing)
+      flags.push({ tone: "amber", text: "Finance owing" });
+  }
 
   return (
     <div className="flex flex-col gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
+      {result.provisional && (
+        <div className="rounded-lg border border-amber-600/30 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-500">
+          Provisional — based on price only. Run a PPSR history check to confirm
+          the car isn&apos;t stolen, written off, or under finance.
+        </div>
+      )}
+
       {/* Verdict band — the one bold element. */}
       <div className={`flex items-start justify-between gap-4 rounded-xl border p-5 ${v.band}`}>
         <div>
@@ -174,8 +184,8 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
           ))}
         </div>
         <p>
-          Valuation: {valuation.source} · History: {history.source} · Saved for
-          review.
+          Valuation: {valuation.source} · History:{" "}
+          {history ? history.source : "not checked"} · Saved for review.
         </p>
       </div>
     </div>
