@@ -36,20 +36,33 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
 
 Tests so far: **49 passing** (`npm test`). `npx tsc --noEmit` clean.
 
-## ▶ STATUS — Slice 1 complete
-All 10 chunks done. The full flow works: sign in → assess a car → deterministic
-verdict + offer card → saved → review in `/assessments` → mark reviewed.
+## Slice 2 — Deferred PPSR (two-phase assessment) ✅
+Built locally (the cloud Ultraplan run stalled — its env had no Supabase keys /
+git remote). Cost optimization: only pay the ~$2 PPSR fee on cars still in play.
+- **Engine** (`engine.ts`): `history` is now `HistoryFacts | null`; a null history
+  → price-only verdict with `provisional: true` (history hard-stops skipped).
+  `explain.ts` appends a provisional note.
+- **Service** (`assess/service.ts`): split into `runPriceAssessment` (phase 1:
+  valuation + price-only, persist `not_checked`) and `runHistoryCheck` (phase 2:
+  PPSR → re-run engine → finalize in place; 409 if already run, 503 on outage).
+  `AssessmentResponse` gains `provisional` + `ppsrEligible` (Buy/Check & priced).
+- **API**: `/api/assess` → `runPriceAssessment`; new `POST /api/assessments/[id]/ppsr`.
+- **DB**: migration `0002_history_status` (APPLIED via MCP) adds
+  `assessments.history_status` ('not_checked'|'checked'); `db.ts` updated.
+- **UI**: provisional banner + "Run PPSR check (~$2)" button (`ppsr-button.tsx`)
+  on `/assess` and the detail page (Buy/Check only); "PPSR pending" in the list.
 
-To fully verify the authenticated E2E locally:
-`E2E_EMAIL=… E2E_PASSWORD=… npm run test:e2e` (a real Supabase user).
+## ▶ STATUS — Slices 1 & 2 complete
+Full flow works and is **verified live**: sign in → price-only provisional verdict
+→ (if Buy/Check) run PPSR → finalized verdict → saved → review → mark reviewed.
 
-Tests: **55 Vitest passing** + Playwright **3/3 passing verified against the
-live Supabase DB** (full happy path: login → assess → persist → list → detail →
-mark reviewed). `npx tsc --noEmit` + `next build` clean.
+Tests: **62 Vitest passing** + Playwright **4/4 passing against the live Supabase
+DB** (incl. provisional→PPSR finalize, finance flip Buy→Check, Pass skips PPSR).
+`npx tsc --noEmit` + `next build` clean. Migration `0002` applied.
 
 ### Possible next slices (not started)
 - Roles (creator vs reviewer); reviewer notes on assessments.
-- Real adapters (RedBook / PPSR) implementing the existing interfaces.
+- A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
 - Generated Supabase types (`supabase gen types`) replacing hand-written `db.ts`.
 - Edit/re-run an assessment; filter/search the list.
 

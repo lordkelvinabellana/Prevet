@@ -122,18 +122,28 @@ from an adapter succeeding with a null valuation (→ engine Check).
 
 ---
 
-## 6. API contract — `POST /api/assess`
+## 6. API contract — two-phase assessment (Slice 2)
 
-- **Auth:** 401 if no session.
-- **Body:** JSON matching `carInputSchema` (zod). 400 with `{ fields }` on
-  validation failure; 400 on invalid JSON.
-- **Flow:** validate → external lookups (before any write) → engine → persist
-  car/valuation/history/assessment → 201 with `AssessmentResponse`.
-- **Failures:** any `AdapterError` → 503 `{ error, code }`, nothing persisted;
-  persistence failure → 500.
+PPSR searches cost ~$2, so history is deferred behind a user-approved step and
+skipped entirely on a price Pass.
 
-`AssessmentResponse` (in `src/lib/assess/service.ts`) is the shared offer
-payload used by both `/assess` and the `/assessments/[id]` detail view.
+**Phase 1 — `POST /api/assess`** (`runPriceAssessment`)
+- Auth: 401 if no session. Body: `carInputSchema` (zod); 400 on invalid input/JSON.
+- Flow: validate → valuation lookup (no PPSR) → engine with `history: null` →
+  persist car/valuation/assessment (`history_status='not_checked'`) → 201 with a
+  **provisional** `AssessmentResponse`.
+- `provisional: true`; `ppsrEligible = priced && (Buy|Check)`.
+- Valuation `AdapterError` → 503, nothing persisted.
+
+**Phase 2 — `POST /api/assessments/[id]/ppsr`** (`runHistoryCheck`)
+- Auth: 401. Runs the paid PPSR check → re-runs the engine with history →
+  **finalizes the assessment in place** (Buy can flip to Pass/Check), inserts the
+  `history_checks` row, sets `history_status='checked'`. Returns the final
+  `AssessmentResponse` (`provisional: false`).
+- 409 if already checked; 503 on a history outage (nothing changed); 404 if not found.
+
+`AssessmentResponse` (in `src/lib/assess/service.ts`) is the shared offer payload
+used by `/assess` and the `/assessments/[id]` detail view.
 
 ---
 
@@ -152,6 +162,13 @@ payload used by both `/assess` and the `/assessments/[id]` detail view.
 | 8 | UI | ✅ `b2d70ff`, `a4291fe` | `/assess` form + hero offer card (verdict + ledger); quick-fill presets + guide dialog |
 | 9 | History + review | ✅ `dac0c6a` | `/assessments` list + `/assessments/[id]` detail + "Mark reviewed" |
 | 10 | E2E + README | ✅ | Playwright (unauth-redirect + happy path + finance edge) + README. **Slice 1 complete.** |
+
+### Slice 2 — Deferred PPSR (two-phase) ✅
+Built locally and verified live. Engine gains a price-only `provisional` mode
+(`history: null`); service splits into `runPriceAssessment` + `runHistoryCheck`;
+new `POST /api/assessments/[id]/ppsr`; migration `0002_history_status` (applied);
+UI provisional banner + "Run PPSR check (~$2)" button (Buy/Check only) + list
+"PPSR pending". 62 Vitest + 4/4 live Playwright; tsc + build clean.
 
 ---
 

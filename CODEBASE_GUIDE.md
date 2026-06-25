@@ -12,12 +12,20 @@ logic** is the heart of the product and gets the most attention below.
 ## 1. What the app does, in one paragraph
 
 A used-car dealer's staff member enters a car (plate/VIN, make, model, year, km,
-the seller's asking price, and estimated repair cost). The app looks up a
-**valuation** (what the car is worth wholesale) and a **history check** (is it
-stolen, written off, or does it still have finance owing?). It then runs a
-**deterministic pricing engine** that computes the **maximum offer** the dealer
-should make and a **recommendation**: **Buy**, **Pass**, or **Check** (needs a
-human to look closer). The result is saved so a person can review it.
+the seller's asking price, and estimated repair cost). The app works in **two
+phases** so it never pays for a search it doesn't need:
+
+1. **Price phase** — it fetches a **valuation** (what the car is worth wholesale)
+   and runs a **deterministic pricing engine** to compute the **maximum offer**
+   and a *provisional* recommendation — **Buy**, **Pass**, or **Check** — based
+   on price alone.
+2. **History phase (PPSR)** — only if the car is still in play (Buy/Check) and the
+   user chooses to, it runs a paid **history check** (stolen, written off, finance
+   owing) and re-runs the engine to finalize the verdict (a Buy can flip to
+   Pass/Check). A price **Pass** skips this — no point paying ~$2 to vet a car
+   you're rejecting anyway.
+
+The result is saved at each phase so a person can review and sign off on it.
 
 **The single most important rule:** AI never decides the price or the
 recommendation. That decision is made by a plain, predictable function you can
@@ -269,6 +277,17 @@ export function calculateMaxOffer(selectedWholesaleValue, repairCost, riskBuffer
   audit. An LLM could *explain* or *assist*, but if it *decided* the price you
   couldn't defend or reproduce the number. For a tool that influences real money
   decisions, that auditability is the point.
+
+### 4.8 Provisional (price-only) mode — the two-phase tie-in
+
+The same `assess()` function powers both phases. Its `history` input can be
+`null`, meaning "PPSR not run yet": when it's null the engine **skips the three
+history hard-stops** (steps 1–3) and decides on price alone, returning
+`provisional: true`. Phase 2 calls `assess()` again with the real history to
+produce the final verdict. So the engine has one decision path; "provisional"
+just means a history check hasn't been folded in yet. (Code: `src/lib/assess/
+service.ts` — `runPriceAssessment` calls the engine with `history: null`;
+`runHistoryCheck` re-runs it with the PPSR result and updates the saved row.)
 
 ---
 
