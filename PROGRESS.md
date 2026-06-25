@@ -25,8 +25,9 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
 - [x] **Chunk 3 — Mock adapters** (commit `8295690`): `src/lib/adapters/*` (valuation + history mocks, triggers, AdapterError) + tests.
 - [x] **Chunk 4 — Validation** (commit `54e2fce`): `src/lib/validation/schema.ts` (zod) + tests.
 - [x] **Chunk 5 — DB layer** (commit `1c09664`): `supabase/migrations/0001_init.sql`, `src/types/db.ts`, `src/lib/supabase/{server,client,env}.ts`.
-      ⚠️ **Migration SQL written but NOT YET APPLIED to the database.**
-- [ ] **Chunk 6 — Auth**: login page, middleware session refresh + gate `(app)/*`, unauthenticated → `/login`.
+      ✅ **Migration `0001_init` APPLIED** via Supabase MCP (2026-06-25). All 4 tables exist with RLS enabled.
+- [x] **Chunk 6 — Auth** (uncommitted): login page + Server Action (`src/app/login/*`), `src/proxy.ts` session refresh + optimistic gate, `(app)/` route group with DB-backed gate (`requireUser` in layout), sign-out, DAL (`src/lib/auth/dal.ts`), session helper (`src/lib/supabase/session.ts`), `Input` component.
+      ⚠️ **Next.js 16: `middleware` is renamed to `proxy`** — entry is `src/proxy.ts` (Node runtime). Build + 49 tests green. Needs a real Supabase user to test sign-in end-to-end.
 - [ ] **Chunk 7 — API orchestration**: `src/app/api/assess/route.ts` — validate → save car → run mock valuation + history → run engine → save assessment → return offer payload. Handle adapter failures (AdapterError) gracefully.
 - [ ] **Chunk 8 — UI**: car form + **offer card (hero)** on `/assess` (shadcn, minimal).
 - [ ] **Chunk 9 — History + review**: `/assessments` list + "Mark Reviewed" action.
@@ -34,15 +35,16 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
 
 Tests so far: **49 passing** (`npm test`). `npx tsc --noEmit` clean.
 
-## ▶ IMMEDIATE NEXT STEP — apply the migration via Supabase MCP
-The `supabase` MCP server is configured in `.mcp.json` (project scope). On a fresh
-session it should connect (approve it if prompted). Then:
-1. Confirm the MCP tools are available (e.g. `mcp__supabase__list_tables`).
-2. Apply `supabase/migrations/0001_init.sql` via the MCP `apply_migration` tool
-   (project_ref `cmwssucvqtaqkqosrumv`), or run its SQL.
-3. Verify the 4 tables exist with RLS enabled, then continue to Chunk 6.
-Fallback if MCP unavailable: paste `supabase/migrations/0001_init.sql` into the
-Supabase dashboard SQL editor and run it.
+## ▶ IMMEDIATE NEXT STEP — Chunk 7 (API orchestration)
+Migration applied and auth wired. Next: `src/app/api/assess/route.ts` —
+validate (zod) → save car → run mock valuation + history → run engine →
+save assessment → return offer payload. Verify auth inside the handler with
+`getUser()`/`requireUser()` from `src/lib/auth/dal.ts` (the proxy excludes
+`/api`). Handle `AdapterError` gracefully.
+
+To test Chunk 6 end-to-end first: create a user in the Supabase dashboard
+(Authentication → Users → Add user) or enable email signup, then `npm run dev`
+and sign in at `/login`.
 
 ## Local env needed before running the app (Chunk 6+)
 Create **`.env.local`** (gitignored) from `.env.example`:
