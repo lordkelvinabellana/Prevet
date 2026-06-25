@@ -362,6 +362,11 @@ lets the detail page redraw the exact same offer card later.
   Buy/Pass/Check band, the max offer, and a **subtraction ledger** showing
   `wholesale − repairs − buffer = max offer` so the number is checkable at a
   glance. The same component is reused on the assessment detail page.
+- **`assessments/` (the dashboard)** lists every saved verdict as a sortable,
+  filterable, searchable table (cards on mobile) with summary stat cards. All
+  state lives in the URL (`?verdict=&status=&q=&sort=&dir=`), so views are
+  shareable and the back button works. Filtering/sorting happen in the DB query;
+  the small pure helpers live in `assessments/_shared.ts`.
 
 ---
 

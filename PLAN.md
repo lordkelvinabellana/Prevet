@@ -170,6 +170,14 @@ new `POST /api/assessments/[id]/ppsr`; migration `0002_history_status` (applied)
 UI provisional banner + "Run PPSR check (~$2)" button (Buy/Check only) + list
 "PPSR pending". 62 Vitest + 4/4 live Playwright; tsc + build clean.
 
+### Slice 3 — Verdicts table dashboard ✅
+`/assessments` upgraded from a list to a dashboard: global stat cards, a client
+toolbar (debounced search + verdict/status filter chips), a sortable desktop
+table (`components/ui/table.tsx` + `assessments-table.tsx`) with a mobile card
+fallback — all driven by URL params. DB-side filter/sort/cap + in-memory search;
+pure helpers in `_shared.ts` (unit-tested). New `components/ui/{table,badge}.tsx`;
+no new deps. 68 Vitest + 8/8 live Playwright; tsc + build clean.
+
 ---
 
 ## 8. Conventions / working agreement

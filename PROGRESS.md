@@ -52,19 +52,32 @@ git remote). Cost optimization: only pay the ~$2 PPSR fee on cars still in play.
 - **UI**: provisional banner + "Run PPSR check (~$2)" button (`ppsr-button.tsx`)
   on `/assess` and the detail page (Buy/Check only); "PPSR pending" in the list.
 
-## ▶ STATUS — Slices 1 & 2 complete
-Full flow works and is **verified live**: sign in → price-only provisional verdict
-→ (if Buy/Check) run PPSR → finalized verdict → saved → review → mark reviewed.
+## Slice 3 — Verdicts table dashboard ✅
+`/assessments` is now a dashboard, not a flat list. Server-rendered + RLS-scoped;
+all state in URL params (shareable, back-button friendly).
+- **Stat cards** (global): total, Buy/Check/Pass, awaiting PPSR, awaiting review.
+- **Toolbar** (`assessments-toolbar.tsx`, client): debounced search (plate/make/
+  model) + verdict & status (needs-PPSR / needs-review) filter chips.
+- **Sortable table** desktop (`assessments-table.tsx`, `components/ui/table.tsx`),
+  **cards** on mobile (`assessment-card.tsx`); sort via column-header links.
+- DB-side filter + sort + 500 cap; text search in memory (spans the joined car).
+- Pure helpers in `_shared.ts` (`needsPpsr`, `buildSortHref`, …) + unit tests.
+- New primitives: `components/ui/{table,badge}.tsx`. No new deps.
 
-Tests: **62 Vitest passing** + Playwright **4/4 passing against the live Supabase
-DB** (incl. provisional→PPSR finalize, finance flip Buy→Check, Pass skips PPSR).
-`npx tsc --noEmit` + `next build` clean. Migration `0002` applied.
+## ▶ STATUS — Slices 1–3 complete
+Full flow works and is **verified live**: sign in → price-only provisional verdict
+→ (if Buy/Check) run PPSR → finalized verdict → saved → review & triage in the
+`/assessments` dashboard → mark reviewed.
+
+Tests: **68 Vitest passing** + Playwright **8/8 against the live Supabase DB**
+(PPSR two-phase + table search/filter/sort/row-nav/mobile). `npx tsc --noEmit` +
+`next build` clean. Migrations `0001`, `0002` applied.
 
 ### Possible next slices (not started)
 - Roles (creator vs reviewer); reviewer notes on assessments.
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
 - Generated Supabase types (`supabase gen types`) replacing hand-written `db.ts`.
-- Edit/re-run an assessment; filter/search the list.
+- Edit/re-run an assessment; CSV export; pagination beyond the 500 cap.
 
 ## Local env needed before running the app (Chunk 6+)
 Create **`.env.local`** (gitignored) from `.env.example`:
