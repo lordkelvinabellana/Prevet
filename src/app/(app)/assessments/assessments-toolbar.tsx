@@ -12,6 +12,7 @@ const VERDICTS = [
 const STATUSES = [
   { value: "needs_ppsr", label: "Needs PPSR" },
   { value: "needs_review", label: "Needs review" },
+  { value: "purchased", label: "Purchased" },
 ];
 
 function chipClass(active: boolean): string {

@@ -53,4 +53,28 @@ test.describe("UI: theme + responsive form", () => {
       page.getByRole("link", { name: /Back to assessments/i }),
     ).toBeVisible();
   });
+
+  test("records a purchase and surfaces savings + 'Bought' in the list", async ({
+    page,
+  }) => {
+    await login(page);
+    // Seed a priced-to-buy assessment (asking $25,000) and open it.
+    await page.goto("/assess");
+    await page.getByRole("button", { name: "Priced to buy" }).click();
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+    await page
+      .getByRole("link", { name: /Open & record purchase/i })
+      .click();
+    await page.waitForURL(/\/assessments\/[0-9a-f-]{36}/);
+
+    // Record a purchase below asking.
+    await page.getByLabel("Purchase price").fill("22000");
+    await page.getByRole("button", { name: "Record purchase" }).click();
+    await expect(page.getByText(/Purchased for/i)).toBeVisible();
+    await expect(page.getByText(/Saved .* vs asking/i)).toBeVisible();
+
+    // The list surfaces the purchase.
+    await page.goto("/assessments");
+    await expect(page.getByText(/Bought \$22,000/).first()).toBeVisible();
+  });
 });

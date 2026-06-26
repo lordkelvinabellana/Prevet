@@ -22,12 +22,16 @@ function parseSort(v: string | undefined): SortCol {
   return SORT_COLS.includes(v as SortCol) ? (v as SortCol) : "created_at";
 }
 
-function computeStats(
-  rows: Pick<
-    AssessmentListItem,
-    "recommendation" | "history_status" | "review_status" | "max_offer"
-  >[],
-): AssessmentStats {
+interface StatRow {
+  recommendation: Recommendation;
+  history_status: "not_checked" | "checked";
+  review_status: "pending" | "reviewed";
+  max_offer: number | string | null;
+  purchase_price: number | string | null;
+  cars: { seller_asking_price: number | string | null } | null;
+}
+
+function computeStats(rows: StatRow[]): AssessmentStats {
   const s: AssessmentStats = {
     total: rows.length,
     buy: 0,
@@ -35,6 +39,9 @@ function computeStats(
     pass: 0,
     awaitingPpsr: 0,
     awaitingReview: 0,
+    purchased: 0,
+    totalSpent: 0,
+    totalSaved: 0,
   };
   for (const r of rows) {
     if (r.recommendation === "buy") s.buy++;
@@ -42,6 +49,16 @@ function computeStats(
     else if (r.recommendation === "pass") s.pass++;
     if (needsPpsr(r)) s.awaitingPpsr++;
     if (r.review_status === "pending") s.awaitingReview++;
+    const price = r.purchase_price == null ? null : Number(r.purchase_price);
+    if (price !== null) {
+      s.purchased++;
+      s.totalSpent += price;
+      const asking =
+        r.cars?.seller_asking_price == null
+          ? null
+          : Number(r.cars.seller_asking_price);
+      if (asking !== null) s.totalSaved += asking - price;
+    }
   }
   return s;
 }
@@ -55,9 +72,11 @@ export default async function AssessmentsPage({
   const verdict = (["buy", "check", "pass"].includes(sp.verdict ?? "")
     ? sp.verdict
     : undefined) as Recommendation | undefined;
-  const status = (["needs_ppsr", "needs_review"].includes(sp.status ?? "")
+  const status = (["needs_ppsr", "needs_review", "purchased"].includes(
+    sp.status ?? "",
+  )
     ? sp.status
-    : undefined) as "needs_ppsr" | "needs_review" | undefined;
+    : undefined) as "needs_ppsr" | "needs_review" | "purchased" | undefined;
   const sort = parseSort(sp.sort);
   const dir =
     sp.dir === "asc" ? "asc" : sp.dir === "desc" ? "desc" : sort === "created_at" ? "desc" : "asc";
@@ -68,17 +87,17 @@ export default async function AssessmentsPage({
   // Stats are global (all verdicts), independent of the active filter.
   const { data: statData } = await supabase
     .from("assessments")
-    .select("recommendation, history_status, review_status, max_offer");
-  const stats = computeStats(
-    (statData ?? []) as unknown as Parameters<typeof computeStats>[0],
-  );
+    .select(
+      "recommendation, history_status, review_status, max_offer, purchase_price, cars(seller_asking_price)",
+    );
+  const stats = computeStats((statData ?? []) as unknown as StatRow[]);
 
   // Main query: DB-side filter + sort + cap. Text search is applied in memory
   // (over the joined car) since it spans an embedded resource and the set is small.
   let query = supabase
     .from("assessments")
     .select(
-      "id, created_at, recommendation, max_offer, history_status, review_status, cars(year, make, model, plate, seller_asking_price)",
+      "id, created_at, recommendation, max_offer, history_status, review_status, purchase_price, cars(year, make, model, plate, seller_asking_price)",
     )
     .order(sort, { ascending: dir === "asc" })
     .limit(RESULT_CAP);
@@ -90,6 +109,7 @@ export default async function AssessmentsPage({
       .in("recommendation", ["buy", "check"]);
   }
   if (status === "needs_review") query = query.eq("review_status", "pending");
+  if (status === "purchased") query = query.not("purchase_price", "is", null);
 
   const { data, error } = await query;
   let rows = (data ?? []) as unknown as AssessmentListItem[];

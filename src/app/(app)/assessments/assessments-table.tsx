@@ -72,7 +72,7 @@ export function AssessmentsTable({
             <SortHead col="max_offer" label="Max offer" params={params} className="text-right" />
             <TableHead className="text-right">Asking</TableHead>
             <TableHead>PPSR</TableHead>
-            <TableHead>Review</TableHead>
+            <TableHead>Status</TableHead>
             <SortHead col="created_at" label="Date" params={params} />
           </TableRow>
         </TableHeader>
@@ -97,7 +97,7 @@ export function AssessmentsTable({
                   </span>
                 )}
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
+              <TableCell className="text-right font-mono font-semibold tabular-nums text-foreground">
                 {row.max_offer == null ? "—" : formatAud(Number(row.max_offer))}
               </TableCell>
               <TableCell className="text-right font-mono tabular-nums text-muted-foreground">
@@ -117,8 +117,12 @@ export function AssessmentsTable({
                 )}
               </TableCell>
               <TableCell>
-                {row.review_status === "reviewed" ? (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-500">
+                {row.purchase_price != null ? (
+                  <span className="whitespace-nowrap text-xs font-medium text-emerald-700 dark:text-emerald-500">
+                    Bought {formatAud(Number(row.purchase_price))}
+                  </span>
+                ) : row.review_status === "reviewed" ? (
+                  <span className="text-xs text-emerald-700 dark:text-emerald-500">
                     Reviewed
                   </span>
                 ) : (

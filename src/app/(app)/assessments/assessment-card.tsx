@@ -15,6 +15,8 @@ const dateFmt = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" });
 /** The mobile (md:hidden) row — a tappable card. */
 export function AssessmentCard({ row }: { row: AssessmentListItem }) {
   const status = rowStatus(row);
+  const purchasePrice =
+    row.purchase_price == null ? null : Number(row.purchase_price);
   return (
     <Link
       href={`/assessments/${row.id}`}
@@ -30,12 +32,18 @@ export function AssessmentCard({ row }: { row: AssessmentListItem }) {
         </span>
       </span>
       <span className="shrink-0 text-right">
-        <span className="block font-mono text-sm font-medium tabular-nums">
+        <span className="block font-mono text-sm font-semibold tabular-nums text-foreground">
           {row.max_offer == null ? "—" : formatAud(Number(row.max_offer))}
         </span>
-        <span className={`block text-xs ${TONE_TEXT[status.tone]}`}>
-          {status.label}
-        </span>
+        {purchasePrice !== null ? (
+          <span className="block text-xs font-medium text-emerald-700 dark:text-emerald-500">
+            Bought {formatAud(purchasePrice)}
+          </span>
+        ) : (
+          <span className={`block text-xs ${TONE_TEXT[status.tone]}`}>
+            {status.label}
+          </span>
+        )}
       </span>
     </Link>
   );
