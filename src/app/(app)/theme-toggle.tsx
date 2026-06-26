@@ -12,6 +12,10 @@ export function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
+    // Sync the icon to the real theme after mount. The server renders `dark`
+    // as false (no DOM), and the pre-paint inline script may have set `.dark`
+    // from system/stored preference — reading it here keeps hydration safe.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 

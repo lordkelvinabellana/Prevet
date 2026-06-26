@@ -162,7 +162,7 @@ describe("assess — offer vs asking price", () => {
     // force maxOffer just under threshold via wholesale tuning is complex; use repair instead
     // wholesale 18000, buffer 900; to get maxOffer = threshold - 1 = 15199 => repair = 18000-900-15199 = 1901
     const r = assess(baseInput({ sellerAskingPrice: asking, repairCost: 1901 }));
-    expect(r.maxOffer).toBe(15199);
+    expect(r.maxOffer).toBe(threshold - 1); // 15199
     expect(r.recommendation).toBe("pass");
   });
 });

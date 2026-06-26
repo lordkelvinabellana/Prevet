@@ -9,6 +9,7 @@ This is the **Car Pre-Vetting Tool** (CarWow WA used-car appraisal). Before doin
 - **PROGRESS.md** — current build state and the immediate next step. Read first.
 - **PLAN.md** — product rules, architecture, data model, and the per-slice log.
 - **CODEBASE_GUIDE.md** — plain-English tour, with a deep dive on the pricing logic.
+- **DEPLOY.md** — Vercel deploy runbook (env vars, Supabase settings, smoke test).
 
 @AGENTS.md
 
@@ -22,6 +23,7 @@ This is the **Car Pre-Vetting Tool** (CarWow WA used-car appraisal). Before doin
   - single file: `npx vitest run tests/engine.test.ts`
   - by name: `npx vitest run -t "stolen"`
 - `npm run test:e2e` — Playwright (`tests/e2e/*.spec.ts`). The auth specs **self-skip** unless a real Supabase user is supplied: `E2E_EMAIL=… E2E_PASSWORD=… npm run test:e2e`. The unauth-redirect spec always runs.
+- **`/preflight`** — slash command (`.claude/commands/preflight.md`): the deploy-readiness gate for Vercel (lint + tsc + build + tests + secret/env checks). Run before shipping; see `DEPLOY.md`.
 
 To run the app you need **`.env.local`** (gitignored) with `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`). DB migrations in `supabase/migrations/` are applied via the **Supabase MCP** (`apply_migration`), not a CLI; project ref `cmwssucvqtaqkqosrumv`. Use the Supabase MCP for any DB inspection/changes.
 
