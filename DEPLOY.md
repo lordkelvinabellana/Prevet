@@ -6,16 +6,28 @@ The Car Pre-Vetting Tool is a standard **Next.js 16** App Router app backed by
 
 ## 1. Preflight (local)
 Run the slash command **`/preflight`** — it runs the hard gate (`npm run lint`,
-`npx tsc --noEmit`, `npm run build`, `npm test`) and checks for committed secrets.
-The Vercel build runs `next build`, so a clean local build ≈ a clean deploy.
+`npx tsc --noEmit`, `npm run build`, an **env-less build**, `npm test`) and checks
+for committed secrets.
+
+> ⚠️ A green `npm run build` locally does **not** prove the Vercel build will pass —
+> it's green because `.env.local` feeds it. Vercel builds without your local file.
+> Preflight therefore also runs `NEXT_PUBLIC_SUPABASE_URL='' NEXT_PUBLIC_SUPABASE_ANON_KEY='' npm run build`
+> to reproduce a fresh Vercel project. That must succeed. It does because the whole
+> `(app)` area is `export const dynamic = "force-dynamic"` (in `(app)/layout.tsx`),
+> so its auth-gated pages are rendered per-request and never prerendered at build —
+> the build needs no Supabase secret. If you ever add a route that touches Supabase
+> at build time, this check fails; make that route dynamic, don't lean on env being
+> present at build.
 
 Commit everything you intend to ship — Vercel builds the committed tree.
 
 ## 2. Environment variables (the #1 gotcha)
-Set these in **Vercel → Project → Settings → Environment Variables** for the
-environments you build (Production and Preview), **before** the first build.
-`NEXT_PUBLIC_*` vars are **inlined at build time**, so a missing one ships a
-browser client that throws at runtime — they are not read lazily at request time.
+Set these in **Vercel → Project → Settings → Environment Variables** for both
+**Production and Preview**. The build itself no longer needs them (the `(app)`
+area is forced dynamic — see §1), but every authed page reads them **at runtime**,
+so a deployment without them renders an error on `/`, `/assess`, etc. Set them
+before the first build anyway — it's the safe default and covers any future
+`NEXT_PUBLIC_*` use that would be inlined into a client bundle.
 
 | Variable | Scope | Notes |
 |---|---|---|

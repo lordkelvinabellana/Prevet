@@ -5,6 +5,13 @@ import { MainNav } from "./main-nav";
 import { ThemeToggle } from "./theme-toggle";
 import { logout } from "./actions";
 
+// Every (app) route is authenticated and reads cookies (`requireUser`), so it is
+// always rendered per-request — never statically prerendered. Forcing dynamic
+// also keeps the production BUILD from rendering these pages (which would create
+// a Supabase client and need NEXT_PUBLIC_SUPABASE_* at build time, failing on a
+// host that only supplies them at runtime). See DEPLOY.md / the preflight check.
+export const dynamic = "force-dynamic";
+
 /**
  * Layout for the authenticated area. Gates every route in the (app) group:
  * `requireUser()` redirects to /login when there is no session. This is the

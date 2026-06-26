@@ -18,29 +18,45 @@ Run each and report ✅/❌ with the key output:
    App Router routes type-check and the production bundle compiles. Confirm the
    route list includes the expected routes (`/`, `/assess`, `/assessments`,
    `/assessments/[id]`, `/dashboard`, `/login`, the `/api/*` handlers) and that
-   `proxy` (Middleware) is listed.
-4. `npm test` — Vitest unit suite green.
+   `proxy` (Middleware) is listed. **Every `(app)` route must show `ƒ` (Dynamic),
+   not `○` (Static)** — a static `(app)` route would be prerendered at build and
+   hit Supabase before env exists.
+4. **Env-less build (reproduces a fresh Vercel project)** — this is the check that
+   catches the #1 deploy failure: a local build passes only because `.env.local`
+   feeds it, then Vercel fails prerendering a page that touched Supabase at build.
+   Run the build with the public Supabase vars blanked:
+   `NEXT_PUBLIC_SUPABASE_URL='' NEXT_PUBLIC_SUPABASE_ANON_KEY='' npm run build`
+   It **must still succeed**. If it fails with `Missing Supabase env vars` /
+   `Error occurred prerendering page "…"`, a route is being prerendered at build
+   and creating a Supabase client — the build now depends on a runtime secret.
+   **Fix:** that route's segment must be dynamic (the `(app)` area sets
+   `export const dynamic = "force-dynamic"` in `src/app/(app)/layout.tsx`); add it
+   to whatever segment is being prerendered, or stop touching Supabase at module
+   load. Do not "fix" it by relying on env being present at build.
+5. `npm test` — Vitest unit suite green.
 
 If any of these fail, STOP: the Vercel build will fail too. Report the failure.
 
 ## Secret & env safety
-5. Confirm no secrets are committed or staged:
+6. Confirm no secrets are committed or staged:
    - `git status --porcelain` — note any uncommitted changes (a deploy ships the
      committed tree, so flag anything not committed).
    - `git ls-files | grep -E '^\.env' || true` — only `.env.example` may be tracked.
      If a real `.env`/`.env.local` is tracked, that's a ❌ (rotate the keys).
    - Grep the staged/committed source for obvious leaked secrets (a Supabase
      `service_role` JWT, hardcoded keys): `git grep -nE 'service_role|eyJ[A-Za-z0-9_-]{20,}' -- src ':!*.example' || true`.
-6. Confirm the app reads config from env, not hardcoded values:
+7. Confirm the app reads config from env, not hardcoded values:
    `grep -rn 'localhost\|127.0.0.1\|:3000' src/ || echo "clean"` (tests/scripts may
    reference localhost — only `src/` matters).
 
 ## Vercel project checklist (report as reminders — you can't verify these from here)
 These are set in the Vercel dashboard / Supabase dashboard, not the repo. List them
 so the user can confirm before/at deploy:
-- **Environment Variables** must be set in the Vercel project for the building
-  environment (Production/Preview) **before the build** — `NEXT_PUBLIC_*` vars are
-  inlined at build time, so a missing one ships a broken client:
+- **Environment Variables** must be set in the Vercel project (Production +
+  Preview). The build no longer needs them (step 4 proves that — the `(app)` area
+  is forced dynamic), but every authed page reads them **at runtime**, so without
+  them the deployed app errors on render. Setting them before the first build is
+  still the safe default (covers any future `NEXT_PUBLIC_*` use in a client bundle):
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY` (server-only; never `NEXT_PUBLIC_`)
