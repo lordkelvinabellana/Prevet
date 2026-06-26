@@ -54,6 +54,21 @@ UI  src/app/(app)/**
 - **Data model** (`supabase/migrations/0001_init.sql`, hand-written types in `src/types/db.ts`): `cars`, `valuations`, `history_checks`, `assessments`. The assessment row stores the engine's full `breakdown` (jsonb), so the detail view and the phase-2 re-run reconstruct the exact numbers.
 - **Assessments dashboard** (`src/app/(app)/assessments/`): server-rendered, RLS-scoped table with stat cards, filter chips, and search — all state in URL params (`?verdict=&status=&q=&sort=&dir=`). Pure helpers live in `_shared.ts`.
 
+## Agents
+
+Project-specific subagents live in `.claude/agents/`. Delegate to them for focused,
+parallelizable work (they start without this session's context, so each one's prompt
+points back to these docs + the graphify map to orient quickly):
+
+- **planner** — design a buildable, file-named implementation plan before coding (read-only).
+- **ux-engineer** — navigation, flows, IA, interaction/empty/error states, accessibility, responsive, UX copy.
+- **visual-designer** — typography, color, spacing, polish; keeps the instrument/appraisal-docket aesthetic.
+- **test-engineer** — Vitest unit + Playwright E2E; knows the fake-Supabase and deterministic-mock patterns.
+- **code-reviewer** — review the diff against the non-negotiables before commit (read-only).
+
+Typical loop: `planner` → implement (with `ux-engineer`/`visual-designer` for UI) →
+`test-engineer` → `code-reviewer`. Run independent agents in parallel.
+
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.
