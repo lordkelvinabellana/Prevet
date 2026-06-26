@@ -91,6 +91,17 @@ no more typing URLs. Home (`(app)/page.tsx`) reworked into a launchpad (hero +
 - Tests: **72 Vitest** + **10/10 live Playwright** (non-viable engine cases,
   dark-toggle persistence, mobile single-column).
 
+### MVP polish — finish the rough edges (no paid API)
+- **Loading states**: `Skeleton` primitive + `loading.tsx` for `/assessments`,
+  `/assessments/[id]`, `/assess` — instant feedback during RSC navigation.
+- **Boundaries**: `(app)/not-found.tsx` (bad assessment id) and `(app)/error.tsx`
+  (retryable) so failures look intentional.
+- **Inline validation**: per-field on-blur in the assess form; `requiredText`
+  now says "X is required" for missing/empty (was zod's raw type error).
+- **a11y**: focus-visible rings (row link + chips), amber contrast bump.
+- Tests now: **72 Vitest** + **12/12 live Playwright** (added inline-error +
+  not-found). `npx tsc --noEmit` + `next build` clean.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer); reviewer notes on assessments.
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
