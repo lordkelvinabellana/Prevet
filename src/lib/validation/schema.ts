@@ -23,6 +23,15 @@ const optionalText = z
   .optional()
   .transform((v) => (v && v.length > 0 ? v : undefined));
 
+/** VIN: like optionalText but normalized to UPPERCASE so storage and the
+ *  duplicate-VIN check are case-insensitive and consistent. */
+const vinText = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .optional()
+  .transform((v) => (v && v.length > 0 ? v : undefined));
+
 const requiredText = (label: string) =>
   z
     .string({ message: `${label} is required` })
@@ -32,7 +41,7 @@ const requiredText = (label: string) =>
 export const carInputSchema = z
   .object({
     plate: optionalText,
-    vin: optionalText,
+    vin: vinText,
     year: z
       .number({ message: "Year is required" })
       .int("Year must be a whole number")

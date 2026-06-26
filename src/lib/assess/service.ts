@@ -47,7 +47,33 @@ export interface AssessmentResponse {
 
 export type AssessmentServiceResult =
   | { ok: true; data: AssessmentResponse }
-  | { ok: false; status: number; error: string; code?: string };
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      code?: string;
+      /** Set on a duplicate-VIN 409 — the user's existing assessment to link to. */
+      existingAssessmentId?: string;
+    };
+
+/**
+ * Per-user duplicate-VIN guard. Returns the user's most recent assessment id for
+ * a car with this VIN, or null. RLS scopes this to the signed-in user, so it only
+ * ever finds (and links to) their own listing. Case-insensitive match.
+ */
+async function findExistingAssessmentByVin(
+  supabase: SupabaseClient,
+  vin: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("assessments")
+    .select("id, created_at, cars!inner(vin)")
+    .ilike("cars.vin", vin)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
 
 function isPpsrEligible(rec: Recommendation, maxOffer: number | null): boolean {
   return maxOffer !== null && (rec === "buy" || rec === "check");
@@ -82,6 +108,20 @@ export async function runPriceAssessment({
     trim: input.trim ?? null,
     kilometres: input.kilometres,
   };
+
+  // Duplicate-VIN guard: don't assess the same car twice. Per-user (RLS-scoped).
+  if (identity.vin) {
+    const existingId = await findExistingAssessmentByVin(supabase, identity.vin);
+    if (existingId) {
+      return {
+        ok: false,
+        status: 409,
+        code: "duplicate_vin",
+        error: "You've already assessed a car with this VIN.",
+        existingAssessmentId: existingId,
+      };
+    }
+  }
 
   // Valuation only — PPSR is deferred to a separate, user-approved step.
   let valuation: ValuationResult;

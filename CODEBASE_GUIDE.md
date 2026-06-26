@@ -372,6 +372,12 @@ via the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`,
 `0004_purchase`.
 
 ### The UI
+- **Duplicate-VIN guard** — a car's VIN is unique, so it can't be assessed twice
+  (per-user). On VIN blur the form calls `GET /api/cars/vin-check`; if the user
+  already has that VIN it shows an amber notice + "View that assessment" link.
+  `runPriceAssessment` re-checks on submit and returns `409 duplicate_vin` rather
+  than creating a duplicate. The mock valuation jitters off the vehicle *spec*
+  (not the VIN), so distinct VINs don't change the valuation.
 - **assess-form.tsx** collects the car and POSTs to `/api/assess`. The result
   shows in the right column with an **"Assess another"** button on top that
   resets the form for the next car (and is auto-focused after a verdict). Editing
@@ -459,13 +465,13 @@ The fastest way to verify any claim above — open these.
 **Mock data sources:**
 - `mockValuationAdapter.getValuation(car)` → `src/lib/adapters/valuation.mock.ts`.
 - `mockHistoryAdapter.getHistory(car)` → `src/lib/adapters/history.mock.ts`.
-- `TRIGGER`, `hasTrigger`, `hashString` → `src/lib/adapters/mock-triggers.ts`; `AdapterError` + interfaces → `src/lib/adapters/types.ts`.
+- `TRIGGER`, `hasTrigger`, `hashString`, `specKey` (valuation jitter keys off the vehicle spec, not the VIN) → `src/lib/adapters/mock-triggers.ts`; `AdapterError` + interfaces → `src/lib/adapters/types.ts`.
 
 **Validation:** `carInputSchema`, `parseCarInput(input)` → `src/lib/validation/schema.ts`.
 
 **Orchestration (two-phase):** `runPriceAssessment({…})` (phase 1) and `runHistoryCheck({…})` (phase 2 / PPSR), plus the `AssessmentResponse` payload type → `src/lib/assess/service.ts`.
 
-**API routes:** `POST /api/assess` → `src/app/api/assess/route.ts`; `POST /api/assessments/[id]/ppsr` → `src/app/api/assessments/[id]/ppsr/route.ts`; `GET /api/assessments/export` (filter-aware CSV) → `src/app/api/assessments/export/route.ts`.
+**API routes:** `POST /api/assess` → `src/app/api/assess/route.ts`; `POST /api/assessments/[id]/ppsr` → `src/app/api/assessments/[id]/ppsr/route.ts`; `GET /api/assessments/export` (filter-aware CSV) → `src/app/api/assessments/export/route.ts`; `GET /api/cars/vin-check` (duplicate-VIN lookup) → `src/app/api/cars/vin-check/route.ts`.
 
 **Auth & data access:** `getUser()` / `requireUser()` → `src/lib/auth/dal.ts`; `updateSession(req)` → `src/lib/supabase/session.ts`; route gate `proxy()` → `src/proxy.ts`; Supabase clients → `src/lib/supabase/{server,client}.ts`; `login` → `src/app/login/actions.ts`; `logout` → `src/app/(app)/actions.ts`; `markReviewed` / `recordPurchase` → `src/app/(app)/assessments/actions.ts`; deal/savings helper `purchaseSavings` → `assessments/_shared.ts`.
 

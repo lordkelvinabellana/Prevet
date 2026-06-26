@@ -201,6 +201,28 @@ tables); 16/16 live Playwright still green (owner keeps full access). Data was n
 ephemeral — there's no delete path in the app; earlier disappearances were the
 end-of-session `delete from public.cars` cleanups, which have stopped.
 
+## Duplicate-VIN guard (per-user) ✅
+A car's VIN is unique, so the same car can't be assessed twice (per-user, since
+data is RLS-isolated):
+- **Server guard** (`assess/service.ts`): `runPriceAssessment` checks the user's
+  cars for the VIN before inserting; on a hit returns `409 { code:"duplicate_vin",
+  existingAssessmentId }` and persists nothing. `api/assess/route.ts` passes it
+  through.
+- **Live check** (`GET /api/cars/vin-check?vin=`): RLS-scoped lookup powering the
+  on-blur warning.
+- **Form UX** (`assess-form.tsx`): on VIN blur (and on a submit 409) an amber
+  notice shows under the VIN field — "You've already assessed this VIN on <date>"
+  + a **View that assessment** button (no auto-redirect). VIN is normalized to
+  UPPERCASE in `schema.ts`.
+- **Enabler**: the mock valuation now jitters off the vehicle **spec**
+  (`specKey`), not the VIN — so VINs can differ without changing the valuation.
+  Presets got **distinct VINs** + a re-tune (max offer is now **$27,952.50**;
+  Close-to-asking is **$28,700**). The mock change also let the **E2E suite use
+  unique VINs** (`uniqueVin`/`fillAssessForm` helpers) — it's now idempotent and
+  no longer needs DB wipes.
+- 80 Vitest + **17/17 live Playwright** (incl. the dedup path); tsc + lint +
+  build + env-less build clean. No DB wipe.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.

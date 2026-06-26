@@ -274,7 +274,18 @@ auth.uid()` on cars/assessments; owning-car `exists(...)` on valuations/history)
 No app code changed — every query already runs through the user's RLS-scoped client.
 Proven at the SQL level: the owner sees their rows, a different `auth.uid()` sees 0.
 
-Current totals: **77 Vitest + 16/16 live Playwright**, tsc + build clean;
+### Duplicate-VIN guard (per-user) ✅
+
+The same car (by VIN) can't be assessed twice. `runPriceAssessment` checks the
+user's cars for the VIN before inserting and returns `409 duplicate_vin` +
+`existingAssessmentId` (RLS-scoped → per-user); a new `GET /api/cars/vin-check`
+powers an on-blur warning; the form shows an amber notice + "View that
+assessment" button (VIN normalized to UPPERCASE). Enabler: the mock valuation now
+jitters off the vehicle **spec** (`specKey`) not the VIN, so presets get distinct
+VINs without shifting their verdicts (max offer re-tuned to $27,952.50) and the
+E2E suite uses unique VINs (`uniqueVin`/`fillAssessForm`) — idempotent, no wipes.
+
+Current totals: **80 Vitest + 17/17 live Playwright**, tsc + lint + build clean;
 migrations `0001`–`0005` applied.
 
 ---

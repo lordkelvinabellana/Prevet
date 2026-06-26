@@ -42,6 +42,17 @@ export function identityKey(car: CarIdentity): string {
   ).toUpperCase();
 }
 
+/**
+ * A key derived from the vehicle *spec* only — never the VIN/plate. The mock
+ * valuation jitters off this so two cars of the same spec value identically
+ * regardless of their VIN; that keeps valuations stable when VINs differ (e.g.
+ * the demo presets, or unique-VIN test runs) and is independent of the
+ * duplicate-VIN guard.
+ */
+export function specKey(car: CarIdentity): string {
+  return `${car.make}|${car.model}|${car.trim ?? ""}|${car.year}|${car.kilometres}`.toUpperCase();
+}
+
 /** Deterministic 32-bit FNV-1a hash of a string (no Math.random). */
 export function hashString(input: string): number {
   let h = 0x811c9dc5;

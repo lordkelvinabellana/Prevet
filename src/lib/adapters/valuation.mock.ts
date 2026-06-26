@@ -1,6 +1,6 @@
 import type { CarIdentity, ValuationAdapter, ValuationResult } from "./types";
 import { AdapterError } from "./types";
-import { TRIGGER, hasTrigger, identityKey, hashString } from "./mock-triggers";
+import { TRIGGER, hasTrigger, specKey, hashString } from "./mock-triggers";
 
 /** Fixed reference year so values are deterministic and not clock-dependent. */
 const REFERENCE_YEAR = 2025;
@@ -19,8 +19,9 @@ function clamp(value: number, min: number, max: number): number {
  * Mock RedBook-style valuation.
  *
  * Deterministic: depreciates from a $45k anchor by age and kilometres, plus a
- * stable per-vehicle jitter derived from the identity hash. Wholesale/retail
- * ranges are derived from the selected wholesale value.
+ * stable per-spec jitter derived from the vehicle spec hash (NOT the VIN/plate,
+ * so identical specs value the same regardless of VIN). Wholesale/retail ranges
+ * are derived from the selected wholesale value.
  */
 export const mockValuationAdapter: ValuationAdapter = {
   async getValuation(car: CarIdentity): Promise<ValuationResult> {
@@ -41,7 +42,7 @@ export const mockValuationAdapter: ValuationAdapter = {
 
     const agePenalty = Math.max(0, REFERENCE_YEAR - car.year) * 1800;
     const kmPenalty = (car.kilometres / 1000) * 40;
-    const jitter = hashString(identityKey(car)) % 2000;
+    const jitter = hashString(specKey(car)) % 2000;
 
     const selected = round50(clamp(45000 - agePenalty - kmPenalty + jitter, 3000, 60000));
 

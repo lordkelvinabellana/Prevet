@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { hasCreds, login } from "./helpers";
+import { hasCreds, login, fillAssessForm } from "./helpers";
 
 test.describe("UI: theme + responsive form", () => {
   test.skip(
@@ -59,8 +59,7 @@ test.describe("UI: theme + responsive form", () => {
   }) => {
     await login(page);
     // Seed a priced-to-buy assessment (asking $25,000) and open it.
-    await page.goto("/assess");
-    await page.getByRole("button", { name: "Priced to buy" }).click();
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
     await page
       .getByRole("link", { name: /Open & record purchase/i })
@@ -89,8 +88,8 @@ test.describe("UI: theme + responsive form", () => {
     // Step 1 — the form is the screen.
     await expect(page.getByLabel("Plate")).toBeVisible();
 
-    // Submit (quick-fill) → step 2: result shows, the form is hidden.
-    await page.getByRole("button", { name: "Priced to buy" }).click();
+    // Fill + submit → step 2: result shows, the form is hidden.
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Plate")).toBeHidden();
 
@@ -103,8 +102,7 @@ test.describe("UI: theme + responsive form", () => {
   test("dashboard shows metrics and CSV export downloads", async ({ page }) => {
     await login(page);
     // Seed at least one assessment so there's data.
-    await page.goto("/assess");
-    await page.getByRole("button", { name: "Priced to buy" }).click();
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
 
     await page.goto("/dashboard");

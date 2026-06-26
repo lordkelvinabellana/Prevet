@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,11 @@ type FieldErrors = Record<string, string>;
 
 const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
 const text = (s: string) => (s.trim() === "" ? undefined : s.trim());
+
+const dupDateFmt = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" });
+
+/** A car with this VIN the user has already assessed. */
+type Duplicate = { assessmentId: string; createdAt?: string };
 
 const isMobile = () =>
   typeof window !== "undefined" &&
@@ -106,6 +111,11 @@ export function AssessForm() {
   // without wiping it. On desktop (lg) both columns always show, so it's moot.
   const [editing, setEditing] = useState(false);
 
+  // The user's existing assessment for the entered VIN, if any (duplicate guard).
+  const [duplicate, setDuplicate] = useState<Duplicate | null>(null);
+  // Guards the async VIN check against races (a later edit supersedes an earlier check).
+  const vinCheckSeq = useRef("");
+
   // Mobile shows the result step once there's a verdict and we're not editing.
   const showResultStep = result !== null && !editing;
 
@@ -116,6 +126,8 @@ export function AssessForm() {
       setValues((v) => ({ ...v, [name]: value }));
       // Editing after a verdict makes that verdict stale.
       if (result && !loading) setStale(true);
+      // Changing the VIN invalidates any duplicate notice.
+      if (name === "vin") setDuplicate(null);
       // Clear a field's error as soon as the user starts fixing it.
       setFieldErrors((errs) => {
         if (!errs[name]) return errs;
@@ -124,6 +136,29 @@ export function AssessForm() {
         return next;
       });
     };
+
+  // On VIN blur: has the user already assessed this VIN? Advisory only — the
+  // server re-checks on submit. Race-guarded so a stale response can't reappear.
+  async function checkVin(rawVin: string) {
+    const vin = rawVin.trim().toUpperCase();
+    vinCheckSeq.current = vin;
+    if (!vin) {
+      setDuplicate(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/cars/vin-check?vin=${encodeURIComponent(vin)}`);
+      if (!res.ok || vinCheckSeq.current !== vin) return;
+      const body = await res.json();
+      setDuplicate(
+        body.exists
+          ? { assessmentId: body.assessmentId, createdAt: body.createdAt }
+          : null,
+      );
+    } catch {
+      // Advisory check — ignore network errors; the submit guard is authoritative.
+    }
+  }
 
   // Validate a single field on blur (server validation stays authoritative).
   function validateField(name: string) {
@@ -162,6 +197,9 @@ export function AssessForm() {
       } else if (res.status === 400 && body.fields) {
         setFieldErrors(body.fields as FieldErrors);
         setFormError("Check the highlighted fields.");
+      } else if (res.status === 409 && body.code === "duplicate_vin") {
+        setDuplicate({ assessmentId: body.existingAssessmentId });
+        scrollIntoViewById("vin-duplicate");
       } else if (res.status === 503) {
         const which =
           body.code === "history_unavailable" ? "History" : "Valuation";
@@ -181,6 +219,7 @@ export function AssessForm() {
     setResult(null);
     setStale(false);
     setEditing(false);
+    setDuplicate(null);
     void runAssess(v);
   }
 
@@ -191,6 +230,7 @@ export function AssessForm() {
     setFormError(null);
     setStale(false);
     setEditing(false);
+    setDuplicate(null);
   }
 
   // "Assess another" — wipe the form and jump back to the first field.
@@ -246,9 +286,11 @@ export function AssessForm() {
             e.preventDefault();
             void runAssess(values);
           }}
-          onBlur={(e) =>
-            validateField((e.target as unknown as HTMLInputElement).name)
-          }
+          onBlur={(e) => {
+            const el = e.target as unknown as HTMLInputElement;
+            validateField(el.name);
+            if (el.name === "vin") void checkVin(el.value);
+          }}
           noValidate
           className={`${
             showResultStep ? "hidden lg:flex" : "flex"
@@ -285,6 +327,27 @@ export function AssessForm() {
               <span className="text-foreground">How to fill this in</span> for
               scenario tokens.
             </p>
+
+            {duplicate && (
+              <div
+                id="vin-duplicate"
+                role="alert"
+                className="mt-3 flex flex-col gap-2 rounded-lg border border-amber-600/40 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="text-amber-800 dark:text-amber-300">
+                  You&apos;ve already assessed this VIN
+                  {duplicate.createdAt
+                    ? ` on ${dupDateFmt.format(new Date(duplicate.createdAt))}`
+                    : ""}
+                  .
+                </span>
+                <Button asChild size="sm" className="shrink-0">
+                  <Link href={`/assessments/${duplicate.assessmentId}`}>
+                    View that assessment
+                  </Link>
+                </Button>
+              </div>
+            )}
           </section>
 
           <section>

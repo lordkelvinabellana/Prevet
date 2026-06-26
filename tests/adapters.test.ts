@@ -33,6 +33,16 @@ describe("mockValuationAdapter", () => {
     expect(v.retailHigh!).toBeGreaterThan(v.retailLow!);
   });
 
+  it("is VIN-independent — same spec values identically regardless of VIN/plate", async () => {
+    const a = await mockValuationAdapter.getValuation(
+      car({ vin: "AAAAAAAAAAAAAAAA1", plate: "AAA111" }),
+    );
+    const b = await mockValuationAdapter.getValuation(
+      car({ vin: "ZZZZZZZZZZZZZZZZ9", plate: "ZZZ999" }),
+    );
+    expect(a.selectedWholesaleValue).toEqual(b.selectedWholesaleValue);
+  });
+
   it("values a newer car higher than an older one (all else equal)", async () => {
     const newer = await mockValuationAdapter.getValuation(car({ year: 2022, vin: "SAMEVIN", plate: "SAME" }));
     const older = await mockValuationAdapter.getValuation(car({ year: 2014, vin: "SAMEVIN", plate: "SAME" }));

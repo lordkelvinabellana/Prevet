@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { hasCreds, login } from "./helpers";
+import { hasCreds, login, fillAssessForm } from "./helpers";
 
 test.describe("assessments table dashboard", () => {
   test.skip(
@@ -9,11 +9,10 @@ test.describe("assessments table dashboard", () => {
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    // Seed a Buy and a Pass so the table has rows to work with.
-    await page.goto("/assess");
-    await page.getByRole("button", { name: "Priced to buy" }).click();
+    // Seed a Buy and a Pass (unique VINs → no collision with prior runs).
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Overpriced" }).click();
+    await fillAssessForm(page, { plate: "1ABC123", asking: 38000 });
     await expect(page.getByText("Pass", { exact: true })).toBeVisible();
   });
 

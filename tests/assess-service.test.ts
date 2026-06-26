@@ -17,6 +17,8 @@ function fakeSupabase(
     insertErrorTable?: string;
     selectRow?: unknown;
     updateError?: boolean;
+    /** Simulate an existing assessment for the submitted VIN (duplicate guard). */
+    dupRow?: { id: string } | null;
   } = {},
 ) {
   const inserted: Record<string, unknown> = {};
@@ -39,16 +41,23 @@ function fakeSupabase(
             },
           };
         },
+        // Chainable read builder. Covers both the phase-2 load
+        // (.select().eq().maybeSingle()) and the dedup check
+        // (.select().ilike().order().limit().maybeSingle()).
         select() {
-          return {
-            eq() {
+          const builder = {
+            eq: () => builder,
+            ilike: () => builder,
+            order: () => builder,
+            limit: () => builder,
+            async maybeSingle() {
               return {
-                async maybeSingle() {
-                  return { data: opts.selectRow ?? null, error: null };
-                },
+                data: opts.dupRow ?? opts.selectRow ?? null,
+                error: null,
               };
             },
           };
+          return builder;
         },
         update(row: unknown) {
           updated = row as Record<string, unknown>;
@@ -169,6 +178,27 @@ describe("runPriceAssessment (phase 1 — price only, no PPSR)", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.status).toBe(500);
+  });
+
+  it("blocks a duplicate VIN: 409 + existing assessment id, nothing persisted", async () => {
+    const { client, inserted } = fakeSupabase({ dupRow: { id: "existing-1" } });
+    const result = await runPriceAssessment({ supabase: client, input: input() });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.status).toBe(409);
+    expect(result.code).toBe("duplicate_vin");
+    expect(result.existingAssessmentId).toBe("existing-1");
+    expect(inserted.cars).toBeUndefined();
+  });
+
+  it("skips the duplicate check when no VIN is provided (plate only)", async () => {
+    // dupRow is set but must be ignored — the guard only runs when a VIN exists.
+    const { client } = fakeSupabase({ dupRow: { id: "ignored" } });
+    const result = await runPriceAssessment({
+      supabase: client,
+      input: input({ vin: undefined, plate: "1ABC123" }),
+    });
+    expect(result.ok).toBe(true);
   });
 });
 

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { hasCreds, login } from "./helpers";
+import { hasCreds, login, fillAssessForm, uniqueVin } from "./helpers";
 
 test.describe("assessment flow (two-phase: price → PPSR)", () => {
   test.skip(
@@ -14,10 +14,8 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
   test("happy path: provisional Buy → run PPSR → finalized → saved → mark reviewed", async ({
     page,
   }) => {
-    await page.goto("/assess");
-
-    // Phase 1: quick-fill the priced-to-buy scenario (fills + runs).
-    await page.getByRole("button", { name: "Priced to buy" }).click();
+    // Phase 1: a priced-to-buy car (unique VIN → fresh each run).
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
 
     // Provisional Buy with the PPSR step offered.
     await expect(page.getByText("Recommendation")).toBeVisible();
@@ -52,10 +50,8 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
   test("PPSR flips a provisional Buy to Check when finance is owing", async ({
     page,
   }) => {
-    await page.goto("/assess");
-    await page.getByRole("button", { name: "Finance owing" }).click();
-
-    // Price alone says Buy...
+    // FINANCE token in the plate drives the history path; price alone says Buy.
+    await fillAssessForm(page, { plate: "FINANCE-1", asking: 25000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
 
     // ...then PPSR reveals finance owing → Check.
@@ -68,8 +64,7 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
   test("editing after a verdict marks it stale; 'Assess another' resets the form", async ({
     page,
   }) => {
-    await page.goto("/assess");
-    await page.getByRole("button", { name: "Priced to buy" }).click();
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
 
     // A verdict, with the next-car action offered.
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
@@ -95,12 +90,34 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
   });
 
   test("a price Pass is never offered the paid PPSR check", async ({ page }) => {
-    await page.goto("/assess");
-    await page.getByRole("button", { name: "Overpriced" }).click();
+    await fillAssessForm(page, { plate: "1ABC123", asking: 38000 });
 
     await expect(page.getByText("Pass", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Run PPSR check/ }),
     ).toBeHidden();
+  });
+
+  test("a duplicate VIN is blocked and links to the existing assessment", async ({
+    page,
+  }) => {
+    const vin = uniqueVin();
+    // First assessment for this VIN.
+    await fillAssessForm(page, { plate: "1ABC123", vin, asking: 25000 });
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+
+    // Re-entering the same VIN warns on blur with a link to the existing one.
+    await page.goto("/assess");
+    await page.getByLabel("Plate").fill("1ABC123");
+    await page.getByLabel("VIN").fill(vin);
+    await page.getByLabel("VIN").blur();
+    await expect(page.getByText(/already assessed this VIN/i)).toBeVisible();
+    const viewLink = page.getByRole("link", { name: "View that assessment" });
+    await expect(viewLink).toBeVisible();
+
+    // Submitting anyway is still blocked server-side (no new row), and the link
+    // opens the existing assessment's detail page.
+    await viewLink.click();
+    await expect(page).toHaveURL(/\/assessments\/[0-9a-f-]{36}$/);
   });
 });
