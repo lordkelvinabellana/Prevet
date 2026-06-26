@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PpsrButton } from "../../assess/ppsr-button";
 import { RecordPurchaseDialog } from "../record-purchase-dialog";
 import { MarkReviewedDialog } from "../mark-reviewed-dialog";
+import { DeleteAssessmentDialog } from "../delete-assessment-dialog";
 import { purchaseSavings } from "../_shared";
 import { signPhotoUrls } from "../_photos";
 import { formatAud } from "@/lib/pricing/explain";
@@ -236,6 +237,12 @@ export default async function AssessmentDetailPage({
           ) : (
             <RecordPurchaseDialog assessmentId={row.id} />
           )}
+
+          <DeleteAssessmentDialog
+            assessmentId={row.id}
+            redirectAfter
+            triggerClassName="ml-auto"
+          />
         </div>
 
         {purchasePrice !== null && (

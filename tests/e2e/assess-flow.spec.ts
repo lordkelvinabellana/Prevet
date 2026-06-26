@@ -133,6 +133,25 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     await expect(page.getByRole("img", { name: "Car photo 1" })).toBeVisible();
   });
 
+  test("deletes an assessment — it's gone afterwards", async ({ page }) => {
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: /Open & record purchase/i }).click();
+    await page.waitForURL(/\/assessments\/[0-9a-f-]{36}/);
+    const detailUrl = page.url();
+
+    await page.getByRole("button", { name: "Delete" }).click(); // open the confirm
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Delete" })
+      .click(); // confirm
+    await page.waitForURL(/\/assessments$/);
+
+    // The detail page no longer exists.
+    await page.goto(detailUrl);
+    await expect(page.getByText("Not found")).toBeVisible();
+  });
+
   test("a duplicate VIN is blocked and links to the existing assessment", async ({
     page,
   }) => {

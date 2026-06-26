@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { CarThumb } from "./car-thumb";
+import { DeleteAssessmentDialog } from "./delete-assessment-dialog";
 import {
   VERDICT_PILL,
   VERDICT_LABEL,
@@ -75,6 +76,9 @@ export function AssessmentsTable({
             <TableHead>PPSR</TableHead>
             <TableHead>Status</TableHead>
             <SortHead col="created_at" label="Date" params={params} />
+            <TableHead>
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -137,6 +141,9 @@ export function AssessmentsTable({
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {dateFmt.format(new Date(row.created_at))}
+              </TableCell>
+              <TableCell className="text-right">
+                <DeleteAssessmentDialog assessmentId={row.id} iconOnly />
               </TableCell>
             </TableRow>
           ))}
