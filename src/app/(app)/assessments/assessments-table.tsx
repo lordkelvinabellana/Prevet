@@ -21,12 +21,36 @@ import {
   type SortCol,
 } from "./_shared";
 
+// Compact AU date + time in Perth (WA) time — "27/06/26, 1:23 pm". Pinning the
+// zone also keeps the server-rendered value stable (no hydration mismatch).
 const dateFmt = new Intl.DateTimeFormat("en-AU", {
-  dateStyle: "medium",
-  timeStyle: "short",
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "Australia/Perth",
 });
 
 type Params = Record<string, string | undefined>;
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5" aria-hidden>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
 
 function SortHead({
   col,
@@ -39,9 +63,9 @@ function SortHead({
   params: Params;
   className?: string;
 }) {
-  const active = (params.sort ?? "created_at") === col;
+  const active = (params.sort ?? "updated_at") === col;
   const dir = active
-    ? (params.dir ?? (col === "created_at" ? "desc" : "asc"))
+    ? (params.dir ?? (col === "updated_at" ? "desc" : "asc"))
     : null;
   return (
     <TableHead className={className}>
@@ -75,7 +99,7 @@ export function AssessmentsTable({
             <TableHead className="text-right">Asking</TableHead>
             <TableHead>PPSR</TableHead>
             <TableHead>Status</TableHead>
-            <SortHead col="created_at" label="Date" params={params} />
+            <SortHead col="updated_at" label="Updated" params={params} />
             <TableHead>
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -117,30 +141,60 @@ export function AssessmentsTable({
               </TableCell>
               <TableCell>
                 {row.history_status === "checked" ? (
-                  <span className="text-xs text-muted-foreground">Checked</span>
+                  <span
+                    title="PPSR checked"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-500"
+                  >
+                    <CheckIcon />
+                    <span className="hidden lg:inline">Checked</span>
+                    <span className="sr-only">PPSR checked</span>
+                  </span>
                 ) : needsPpsr(row) ? (
-                  <span className="text-xs text-amber-700 dark:text-amber-500">
-                    Pending
+                  <span
+                    title="PPSR pending"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-500"
+                  >
+                    <ClockIcon />
+                    <span className="hidden lg:inline">Pending</span>
+                    <span className="sr-only">PPSR pending</span>
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-xs text-muted-foreground" title="PPSR not needed">
+                    —
+                  </span>
                 )}
               </TableCell>
               <TableCell>
                 {row.purchase_price != null ? (
-                  <span className="whitespace-nowrap text-xs font-medium text-emerald-700 dark:text-emerald-500">
-                    Bought {formatAud(Number(row.purchase_price))}
+                  <span
+                    title={`Bought for ${formatAud(Number(row.purchase_price))}`}
+                    className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-emerald-700 dark:text-emerald-500"
+                  >
+                    <CheckIcon />
+                    {formatAud(Number(row.purchase_price))}
                   </span>
                 ) : row.review_status === "reviewed" ? (
-                  <span className="text-xs text-emerald-700 dark:text-emerald-500">
-                    Reviewed
+                  <span
+                    title="Reviewed"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-500"
+                  >
+                    <CheckIcon />
+                    <span className="hidden lg:inline">Reviewed</span>
+                    <span className="sr-only">Reviewed</span>
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Pending</span>
+                  <span
+                    title="Pending review"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                  >
+                    <ClockIcon />
+                    <span className="hidden lg:inline">Pending</span>
+                    <span className="sr-only">Pending review</span>
+                  </span>
                 )}
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
-                {dateFmt.format(new Date(row.created_at))}
+                {dateFmt.format(new Date(row.updated_at))}
               </TableCell>
               <TableCell className="text-right">
                 <DeleteAssessmentDialog assessmentId={row.id} iconOnly />

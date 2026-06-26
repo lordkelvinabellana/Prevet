@@ -69,6 +69,7 @@ interface DetailRow {
 const dateFmt = new Intl.DateTimeFormat("en-AU", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "Australia/Perth",
 });
 
 const numOrNull = (x: number | string | null | undefined): number | null =>

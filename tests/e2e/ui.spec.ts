@@ -73,9 +73,10 @@ test.describe("UI: theme + responsive form", () => {
     await expect(page.getByText(/Bought \$22,000/)).toBeVisible();
     await expect(page.getByText(/saved .* vs asking/i)).toBeVisible();
 
-    // The list surfaces the purchase.
+    // The list surfaces the purchase (table Status cell: a check + the amount,
+    // titled "Bought for $22,000").
     await page.goto("/assessments");
-    await expect(page.getByText(/Bought \$22,000/).first()).toBeVisible();
+    await expect(page.getByTitle("Bought for $22,000").first()).toBeVisible();
   });
 
   test("on mobile, /assess is a two-step form → result flow", async ({

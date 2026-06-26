@@ -4,7 +4,7 @@ import type { AssessmentListItem } from "./_shared";
 export const RESULT_CAP = 500;
 
 const LIST_SELECT =
-  "id, created_at, recommendation, max_offer, history_status, review_status, purchase_price, cars(year, make, model, plate, seller_asking_price, photos)";
+  "id, created_at, updated_at, recommendation, max_offer, history_status, review_status, purchase_price, cars(year, make, model, plate, seller_asking_price, photos)";
 
 export type AssessmentParams = Record<string, string | undefined>;
 
@@ -25,17 +25,17 @@ export async function fetchFilteredAssessments(
   )
     ? sp.status
     : undefined;
-  const sort = ["created_at", "max_offer", "recommendation"].includes(
+  const sort = ["updated_at", "max_offer", "recommendation"].includes(
     sp.sort ?? "",
   )
     ? (sp.sort as string)
-    : "created_at";
+    : "updated_at";
   const dir =
     sp.dir === "asc"
       ? "asc"
       : sp.dir === "desc"
         ? "desc"
-        : sort === "created_at"
+        : sort === "updated_at"
           ? "desc"
           : "asc";
   const q = (sp.q ?? "").trim().toLowerCase();

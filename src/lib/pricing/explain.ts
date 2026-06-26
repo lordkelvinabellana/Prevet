@@ -1,13 +1,18 @@
 import { REASON_CODE, type ReasonCode } from "./reason-codes";
 import type { PricingResult } from "./engine";
 
-/** Format a number as whole-dollar AUD, e.g. 15900 -> "$15,900". */
+/**
+ * Format a number as AUD. Whole amounts show no cents (15900 -> "$15,900"); any
+ * fractional amount shows its exact cents (27952.5 -> "$27,952.50") — never
+ * rounded, so figures like savings and the risk buffer stay transparent.
+ */
 export function formatAud(value: number | null): string {
   if (value === null) return "N/A";
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency: "AUD",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 

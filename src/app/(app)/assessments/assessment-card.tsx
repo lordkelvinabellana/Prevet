@@ -12,7 +12,15 @@ import {
   type AssessmentListItem,
 } from "./_shared";
 
-const dateFmt = new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" });
+const dateFmt = new Intl.DateTimeFormat("en-AU", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "Australia/Perth",
+});
 
 /** The mobile (md:hidden) row — a tappable card. */
 export function AssessmentCard({ row }: { row: AssessmentListItem }) {
@@ -35,7 +43,7 @@ export function AssessmentCard({ row }: { row: AssessmentListItem }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{carLabel(row.cars)}</span>
         <span className="block text-xs text-muted-foreground">
-          {dateFmt.format(new Date(row.created_at))}
+          {dateFmt.format(new Date(row.updated_at))}
         </span>
       </span>
       <span className="shrink-0 text-right">

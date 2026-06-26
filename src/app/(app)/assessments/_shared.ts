@@ -4,6 +4,7 @@ import type { Recommendation } from "@/lib/pricing/reason-codes";
 export interface AssessmentListItem {
   id: string;
   created_at: string;
+  updated_at: string;
   recommendation: Recommendation;
   max_offer: number | string | null;
   history_status: "not_checked" | "checked";
@@ -59,9 +60,9 @@ export function rowStatus(r: AssessmentListItem): { label: string; tone: Tone } 
   return { label: "Pending review", tone: "muted" };
 }
 
-export type SortCol = "created_at" | "max_offer" | "recommendation";
+export type SortCol = "updated_at" | "max_offer" | "recommendation";
 export const SORT_COLS: readonly SortCol[] = [
-  "created_at",
+  "updated_at",
   "max_offer",
   "recommendation",
 ];

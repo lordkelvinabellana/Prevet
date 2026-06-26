@@ -12,6 +12,7 @@ function item(overrides: Partial<AssessmentListItem> = {}): AssessmentListItem {
   return {
     id: "a1",
     created_at: "2026-06-26T00:00:00Z",
+    updated_at: "2026-06-26T00:00:00Z",
     recommendation: "buy",
     max_offer: 28712,
     history_status: "not_checked",
