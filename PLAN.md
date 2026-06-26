@@ -89,9 +89,11 @@ all, insert their own, and update assessments for review):
   selected_wholesale_value (nullable when no valuation). FK → cars (cascade).
 - **history_checks** — PPSR-style; finance_owing / stolen / written_off + notes.
   FK → cars (cascade).
-- **assessments** — engine output + review: repair_cost, risk_buffer, max_offer,
-  recommendation, reasoning, reason_codes[], breakdown (jsonb), review_status
-  (pending|reviewed), reviewed_by, reviewed_at, created_by.
+- **assessments** — engine output + review + buy: repair_cost, risk_buffer,
+  max_offer, recommendation, reasoning, reason_codes[], breakdown (jsonb),
+  review_status (pending|reviewed), reviewed_by, reviewed_at, created_by,
+  history_status (not_checked|checked, `0002`), reviewer_note (`0003`),
+  purchase_price / purchased_at / purchase_note / purchased_by (`0004`).
 
 Row types are hand-maintained in `src/types/db.ts`.
 
@@ -199,8 +201,39 @@ Global nav + home launchpad; engine `OFFER_NON_VIABLE` (repairs+buffer exceed
 value → Pass); centralized verdict tokens (`src/lib/verdict-style.ts`); **dark
 mode** (system + toggle); form ergonomics (mobile single-column, `$` mono inputs,
 inline on-blur validation); **loading skeletons** + **not-found/error**
-boundaries; light a11y pass. Current totals: **72 Vitest + 12/12 live Playwright**,
-tsc + build clean; migrations `0001`–`0003` applied.
+boundaries; light a11y pass.
+
+### Source data on the offer card ✅
+
+The offer card + detail show the **mock RedBook** valuation (wholesale/retail
+ranges + selected) and the **PPSR** checks (Clear/Flagged + notes), so a reviewer
+can cross-reference inputs → verdict. Valuation range columns plumbed through
+`runHistoryCheck` + the detail query (were nulled). `verdict.tsx`.
+
+### Purchase tracking ✅
+
+Record the actual buy and report on it. Migration `0004_purchase`
+(`purchase_price`/`purchased_at`/`purchase_note`/`purchased_by` on assessments).
+`recordPurchase` action; **saved vs asking** = asking − price paid
+(`purchaseSavings`); an "Open & record purchase" action on the assess result.
+
+### Reporting pass — top action dialogs · CSV export · /dashboard ✅
+
+Make the tool reportable for a supervisor:
+- **Detail top action bar** — PPSR / **Mark reviewed** / **Record purchase** moved
+  *above* the verdict as buttons that open radix **popup dialogs**
+  (`record-purchase-dialog.tsx`, `mark-reviewed-dialog.tsx`); state shows as
+  badges with a saved-vs-asking line.
+- **Filter-aware CSV export** — shared `fetchFilteredAssessments` (`_query.ts`) +
+  `getAssessmentStats` (`_stats.ts`) extracted from `/assessments`; new
+  `GET /api/assessments/export` streams `text/csv` honouring the *same* filters
+  (Purchased filter → a deals export). `_csv.ts` is unit-tested.
+- **Dedicated `/dashboard`** — supervisor reports: Deals money story (Purchased ·
+  Total spent · Saved vs asking) + verdict bars + pipeline; "Dashboard" added to
+  the nav. `/assessments` stays the working queue.
+
+Current totals: **77 Vitest + 14/14 live Playwright**, tsc + build clean;
+migrations `0001`–`0004` applied.
 
 ---
 
