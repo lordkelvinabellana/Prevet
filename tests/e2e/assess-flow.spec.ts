@@ -98,6 +98,41 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     ).toBeHidden();
   });
 
+  test("uploads a car photo: thumbnail in the list + gallery on the detail", async ({
+    page,
+  }) => {
+    // A 1×1 PNG, uploaded to the private car-photos bucket by the form.
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+      "base64",
+    );
+    await page.goto("/assess");
+    await page.getByLabel("Plate").fill("1ABC123");
+    await page.getByLabel("VIN").fill(uniqueVin());
+    await page.getByLabel("Make").fill("Toyota");
+    await page.getByLabel("Model").fill("Corolla");
+    await page.getByLabel("Year").fill("2018");
+    await page.getByLabel("Kilometres").fill("90000");
+    await page.getByLabel("Trim").fill("Ascent Sport");
+    await page.getByLabel("Seller asking").fill("25000");
+    await page.getByLabel("Est. repairs").fill("500");
+
+    await page
+      .getByLabel("Add car photos")
+      .setInputFiles({ name: "car.png", mimeType: "image/png", buffer: png });
+    // Wait for the eager upload to finish before submitting.
+    await expect(page.getByRole("button", { name: "Remove photo" })).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("button", { name: "Get verdict" }).click();
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+
+    // Detail view shows the photo in a gallery.
+    await page.getByRole("link", { name: /Open & record purchase/i }).click();
+    await page.waitForURL(/\/assessments\/[0-9a-f-]{36}/);
+    await expect(page.getByRole("img", { name: "Car photo 1" })).toBeVisible();
+  });
+
   test("a duplicate VIN is blocked and links to the existing assessment", async ({
     page,
   }) => {

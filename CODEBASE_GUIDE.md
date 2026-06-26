@@ -378,6 +378,15 @@ via the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`,
   `runPriceAssessment` re-checks on submit and returns `409 duplicate_vin` rather
   than creating a duplicate. The mock valuation jitters off the vehicle *spec*
   (not the VIN), so distinct VINs don't change the valuation.
+- **Car photos** — the assess form uploads photos client-side (`assess/photo-
+  upload.tsx`, browser Supabase client) to a **private** `car-photos` bucket under
+  `<userId>/<uuid>/…` (storage RLS: own folder only); the paths are stored on
+  `cars.photos`. The list shows the first as a thumbnail (`assessments/car-thumb.tsx`)
+  and the detail page a gallery — both via server-side **signed URLs**
+  (`assessments/_photos.ts`, 1 h TTL). Nothing is public.
+- **Responsive list** — `/assessments` streams its results behind a keyed
+  `<Suspense>` (`assessments-results.tsx` + `results-skeleton.tsx`) so every
+  filter/sort/search shows a skeleton; the toolbar shows an `isPending` spinner.
 - **assess-form.tsx** collects the car and POSTs to `/api/assess`. The result
   shows in the right column with an **"Assess another"** button on top that
   resets the form for the next car (and is auto-focused after a verdict). Editing
@@ -477,4 +486,4 @@ The fastest way to verify any claim above — open these.
 
 **UI:** offer card `Verdict` → `src/app/(app)/assess/verdict.tsx` (colours in `src/lib/verdict-style.ts`); form `buildPayload`/`validateField`/`runAssess` → `assess/assess-form.tsx`; `PpsrButton` → `assess/ppsr-button.tsx`; presets → `assess/presets.ts`; queue query `fetchFilteredAssessments` → `assessments/_query.ts`, stats `getAssessmentStats` → `assessments/_stats.ts`, CSV `csvCell`/`assessmentsToCsv` → `assessments/_csv.ts`; table/cards/toolbar/stat-cards in that folder; pure helpers `needsPpsr`/`buildSortHref`/`rowStatus`/`carLabel`/`purchaseSavings` → `assessments/_shared.ts`; detail action bar + dialogs → `assessments/[id]/page.tsx` (+ `record-purchase-dialog.tsx`, `mark-reviewed-dialog.tsx`); reports → `(app)/dashboard/page.tsx`; nav/theme → `(app)/main-nav.tsx`, `(app)/theme-toggle.tsx`.
 
-**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`, `0004_purchase`, `0005_per_user_isolation`).
+**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`, `0004_purchase`, `0005_per_user_isolation`, `0006_car_photos`). Car photos live in the private `car-photos` Storage bucket (own-folder RLS), not a table.

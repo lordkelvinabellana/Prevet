@@ -16,6 +16,8 @@ export interface CarRow {
   trim: string | null;
   kilometres: number;
   seller_asking_price: number;
+  /** Storage object paths in the private `car-photos` bucket (first = thumbnail). */
+  photos: string[];
   created_by: string;
   created_at: string;
 }

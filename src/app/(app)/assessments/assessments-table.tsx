@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { CarThumb } from "./car-thumb";
 import {
   VERDICT_PILL,
   VERDICT_LABEL,
@@ -85,17 +86,22 @@ export function AssessmentsTable({
                 </Badge>
               </TableCell>
               <TableCell className="w-full">
-                <Link
-                  href={`/assessments/${row.id}`}
-                  className="whitespace-nowrap rounded-sm font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {carLabel(row.cars)}
-                </Link>
-                {row.cars?.plate && (
-                  <span className="block whitespace-nowrap font-mono text-xs text-muted-foreground">
-                    {row.cars.plate}
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  <CarThumb url={row.thumbnailUrl} className="size-9" />
+                  <div className="min-w-0">
+                    <Link
+                      href={`/assessments/${row.id}`}
+                      className="whitespace-nowrap rounded-sm font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {carLabel(row.cars)}
+                    </Link>
+                    {row.cars?.plate && (
+                      <span className="block whitespace-nowrap font-mono text-xs text-muted-foreground">
+                        {row.cars.plate}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </TableCell>
               <TableCell className="text-right font-mono font-semibold tabular-nums text-foreground">
                 {row.max_offer == null ? "—" : formatAud(Number(row.max_offer))}

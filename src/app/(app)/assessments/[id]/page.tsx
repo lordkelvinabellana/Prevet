@@ -9,6 +9,7 @@ import { PpsrButton } from "../../assess/ppsr-button";
 import { RecordPurchaseDialog } from "../record-purchase-dialog";
 import { MarkReviewedDialog } from "../mark-reviewed-dialog";
 import { purchaseSavings } from "../_shared";
+import { signPhotoUrls } from "../_photos";
 import { formatAud } from "@/lib/pricing/explain";
 import type { PricingBreakdown } from "@/lib/pricing/engine";
 import type { Recommendation, ReasonCode } from "@/lib/pricing/reason-codes";
@@ -44,6 +45,7 @@ interface DetailRow {
     plate: string | null;
     vin: string | null;
     kilometres: number;
+    photos: string[] | null;
   } | null;
   valuations: {
     source: string;
@@ -84,7 +86,7 @@ export default async function AssessmentDetailPage({
   const { data } = await supabase
     .from("assessments")
     .select(
-      "*, cars(year, make, model, trim, plate, vin, kilometres), valuations(source, wholesale_low, wholesale_high, retail_low, retail_high, selected_wholesale_value), history_checks(source, finance_owing, stolen, written_off, notes)",
+      "*, cars(year, make, model, trim, plate, vin, kilometres, photos), valuations(source, wholesale_low, wholesale_high, retail_low, retail_high, selected_wholesale_value), history_checks(source, finance_owing, stolen, written_off, notes)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -96,6 +98,13 @@ export default async function AssessmentDetailPage({
 
   const car = row.cars;
   const hist = row.history_checks;
+
+  // Signed URLs for the car's photos, in order (first = thumbnail).
+  const photoPaths = car?.photos ?? [];
+  const signed = await signPhotoUrls(supabase, photoPaths);
+  const photoUrls = photoPaths
+    .map((p) => signed[p])
+    .filter((u): u is string => Boolean(u));
 
   // Rebuild the offer payload so the detail view renders identically to /assess.
   const result: AssessmentResponse = {
@@ -166,6 +175,31 @@ export default async function AssessmentDetailPage({
             .join(" · ")}
         </p>
       </header>
+
+      {photoUrls.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {photoUrls.map((url, i) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`block overflow-hidden rounded-lg border border-border bg-muted ${
+                i === 0 ? "col-span-2 sm:col-span-3" : ""
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`Car photo ${i + 1}`}
+                className={`w-full object-cover ${
+                  i === 0 ? "max-h-72" : "h-32 sm:h-28"
+                }`}
+              />
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* Action bar — quick updates, kept on top. */}
       <div className="mb-6 flex flex-col gap-2">

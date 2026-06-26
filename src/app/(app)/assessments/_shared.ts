@@ -15,7 +15,10 @@ export interface AssessmentListItem {
     model: string;
     plate: string | null;
     seller_asking_price: number | string | null;
+    photos: string[] | null;
   } | null;
+  /** Signed URL for the first photo, resolved server-side (see _photos.ts). */
+  thumbnailUrl?: string | null;
 }
 
 // Verdict colour tokens live in one place; re-exported here for the dashboard.

@@ -45,6 +45,12 @@ Source of truth for the names is `.env.example`. The current project ref is
 - **Auth → URL Configuration**: add the production domain and the
   `*.vercel.app` preview URLs to the **Site URL** and **Redirect URLs** allow-list,
   or email-confirmation / redirect-based auth will fail in production.
+- **Storage**: a **private** `car-photos` bucket with own-folder RLS already exists
+  on the project (created via the Supabase MCP). The same project serves prod, so
+  no action is needed. Car photos are uploaded **client-side** via the browser
+  Supabase client, so `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  must be present **at runtime** (already required by §2) for uploads to work; the
+  build itself still doesn't need them (the env-less build passes).
 - **RLS** is already enforced (migrations `0001`–`0004`); the deployed app uses the
   same hosted Supabase project and its policies. No DB change is needed to deploy.
 - The deployed app talks to the **same database** as local dev — be mindful that

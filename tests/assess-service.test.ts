@@ -191,6 +191,17 @@ describe("runPriceAssessment (phase 1 — price only, no PPSR)", () => {
     expect(inserted.cars).toBeUndefined();
   });
 
+  it("persists uploaded photo paths on the car", async () => {
+    const { client, inserted } = fakeSupabase();
+    const photos = ["u/abc/0-front.jpg", "u/abc/1-side.jpg"];
+    const result = await runPriceAssessment({
+      supabase: client,
+      input: input({ photos }),
+    });
+    expect(result.ok).toBe(true);
+    expect(inserted.cars).toMatchObject({ photos });
+  });
+
   it("skips the duplicate check when no VIN is provided (plate only)", async () => {
     // dupRow is set but must be ignored — the guard only runs when a VIN exists.
     const { client } = fakeSupabase({ dupRow: { id: "ignored" } });

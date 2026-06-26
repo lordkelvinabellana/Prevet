@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Verdict } from "./verdict";
 import { PpsrButton } from "./ppsr-button";
+import { PhotoUpload } from "./photo-upload";
 import { Guide } from "./guide";
 import { EMPTY_FORM, PRESETS, DOT, type FormValues } from "./presets";
 import { parseCarInput } from "@/lib/validation/schema";
@@ -111,6 +112,10 @@ export function AssessForm() {
   // without wiping it. On desktop (lg) both columns always show, so it's moot.
   const [editing, setEditing] = useState(false);
 
+  // Uploaded car-photo storage paths (uploaded client-side by <PhotoUpload>).
+  const [photos, setPhotos] = useState<string[]>([]);
+  // Bumped on reset to remount <PhotoUpload> and clear its previews.
+  const [photoKey, setPhotoKey] = useState(0);
   // The user's existing assessment for the entered VIN, if any (duplicate guard).
   const [duplicate, setDuplicate] = useState<Duplicate | null>(null);
   // Guards the async VIN check against races (a later edit supersedes an earlier check).
@@ -172,12 +177,12 @@ export function AssessForm() {
     });
   }
 
-  async function runAssess(v: FormValues) {
+  async function runAssess(v: FormValues, photoPaths: string[]) {
     setLoading(true);
     setFieldErrors({});
     setFormError(null);
 
-    const payload = buildPayload(v);
+    const payload = { ...buildPayload(v), photos: photoPaths };
 
     try {
       const res = await fetch("/api/assess", {
@@ -220,7 +225,9 @@ export function AssessForm() {
     setStale(false);
     setEditing(false);
     setDuplicate(null);
-    void runAssess(v);
+    setPhotos([]);
+    setPhotoKey((k) => k + 1);
+    void runAssess(v, []);
   }
 
   function clearForm() {
@@ -231,6 +238,8 @@ export function AssessForm() {
     setStale(false);
     setEditing(false);
     setDuplicate(null);
+    setPhotos([]);
+    setPhotoKey((k) => k + 1);
   }
 
   // "Assess another" — wipe the form and jump back to the first field.
@@ -284,7 +293,7 @@ export function AssessForm() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void runAssess(values);
+            void runAssess(values, photos);
           }}
           onBlur={(e) => {
             const el = e.target as unknown as HTMLInputElement;
@@ -469,6 +478,11 @@ export function AssessForm() {
                 </div>
               </Field>
             </div>
+          </section>
+
+          <section>
+            <Eyebrow>Photos</Eyebrow>
+            <PhotoUpload key={photoKey} onChange={setPhotos} />
           </section>
 
           {formError && (

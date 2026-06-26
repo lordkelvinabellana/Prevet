@@ -63,6 +63,9 @@ export const carInputSchema = z
       .number({ message: "Repair cost is required" })
       .min(0, "Repair cost cannot be negative")
       .max(MAX_REPAIR, "Repair cost is unrealistically high"),
+    // Storage object paths for uploaded car photos (uploaded client-side before
+    // submit). Bounded; the bucket RLS is what actually enforces ownership.
+    photos: z.array(z.string().min(1)).max(8).optional(),
   })
   .refine((d) => Boolean(d.plate) || Boolean(d.vin), {
     message: "Provide at least a number plate or a VIN",

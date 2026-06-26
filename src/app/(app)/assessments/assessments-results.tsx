@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AssessmentsTable } from "./assessments-table";
 import { AssessmentCard } from "./assessment-card";
 import { fetchFilteredAssessments, RESULT_CAP } from "./_query";
+import { signPhotoUrls } from "./_photos";
 
 type SearchParams = Record<string, string | undefined>;
 
@@ -23,6 +24,16 @@ export async function AssessmentsResults({
   const supabase = await createClient();
   const { rows, error } = await fetchFilteredAssessments(supabase, sp);
   const filtersActive = Boolean(sp.verdict || sp.status || sp.q);
+
+  // Sign each row's first photo (the thumbnail) in one batch.
+  const thumbPaths = rows
+    .map((r) => r.cars?.photos?.[0])
+    .filter((p): p is string => Boolean(p));
+  const signed = await signPhotoUrls(supabase, thumbPaths);
+  for (const r of rows) {
+    const p = r.cars?.photos?.[0];
+    r.thumbnailUrl = p ? (signed[p] ?? null) : null;
+  }
 
   if (error) {
     return (

@@ -154,6 +154,7 @@ export async function runPriceAssessment({
       trim: identity.trim,
       kilometres: input.kilometres,
       seller_asking_price: input.sellerAskingPrice,
+      photos: input.photos ?? [],
     })
     .select("id")
     .single();

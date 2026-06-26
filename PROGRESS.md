@@ -223,6 +223,24 @@ data is RLS-isolated):
 - 80 Vitest + **17/17 live Playwright** (incl. the dedup path); tsc + lint +
   build + env-less build clean. No DB wipe.
 
+## Responsive table + car photos ✅
+Two UX slices:
+- **Responsive table** (commit `b2fe898`): the `/assessments` results now stream
+  behind a keyed `<Suspense>` (`assessments-results.tsx` + `results-skeleton.tsx`),
+  so every filter/sort/search shows a skeleton instead of silently waiting (the
+  toolbar's transition used to suppress the fallback); the toolbar shows an instant
+  `isPending` spinner. Dialogs/PPSR already had pending states.
+- **Car photos** (multiple, private bucket + signed URLs): upload in the assess
+  form (`photo-upload.tsx`, browser client → private `car-photos` bucket at
+  `<userId>/<uuid>/…`, RLS own-folder only), a thumbnail in the list table/cards
+  (`car-thumb.tsx`), and a gallery on the detail page. Migration `0006_car_photos`
+  adds `cars.photos text[]`; `_photos.ts` batch-signs URLs server-side
+  (1 h TTL). `schema.ts` bounds photos to 8; the service persists them.
+- 83 Vitest + **18/18 live Playwright** (incl. a real upload → thumbnail/gallery);
+  storage RLS proven (another `auth.uid()` sees 0 objects); tsc + lint + build +
+  env-less build clean. Bucket is private; the browser client now reads
+  `NEXT_PUBLIC_*` at runtime for uploads.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.

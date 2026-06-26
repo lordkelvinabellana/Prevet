@@ -25,6 +25,7 @@ describe("assessmentsToCsv", () => {
       model: "Corolla",
       plate: "1ABC123",
       seller_asking_price: 25000,
+      photos: [],
     },
   };
 

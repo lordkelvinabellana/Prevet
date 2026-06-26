@@ -23,6 +23,7 @@ function item(overrides: Partial<AssessmentListItem> = {}): AssessmentListItem {
       model: "Corolla",
       plate: "1ABC123",
       seller_asking_price: 25000,
+      photos: [],
     },
     ...overrides,
   };

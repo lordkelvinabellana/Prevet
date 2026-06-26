@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatAud } from "@/lib/pricing/explain";
 import { Badge } from "@/components/ui/badge";
+import { CarThumb } from "./car-thumb";
 import {
   VERDICT_PILL,
   VERDICT_LABEL,
@@ -25,6 +26,7 @@ export function AssessmentCard({ row }: { row: AssessmentListItem }) {
       <Badge className={`w-16 shrink-0 ${VERDICT_PILL[row.recommendation]}`}>
         {VERDICT_LABEL[row.recommendation]}
       </Badge>
+      <CarThumb url={row.thumbnailUrl} className="size-10" />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{carLabel(row.cars)}</span>
         <span className="block text-xs text-muted-foreground">

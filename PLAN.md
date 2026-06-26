@@ -285,8 +285,19 @@ jitters off the vehicle **spec** (`specKey`) not the VIN, so presets get distinc
 VINs without shifting their verdicts (max offer re-tuned to $27,952.50) and the
 E2E suite uses unique VINs (`uniqueVin`/`fillAssessForm`) — idempotent, no wipes.
 
-Current totals: **80 Vitest + 17/17 live Playwright**, tsc + lint + build clean;
-migrations `0001`–`0005` applied.
+### Responsive table + car photos ✅
+
+**Responsive table**: `/assessments` results stream behind a keyed `<Suspense>`
+(`assessments-results.tsx`/`results-skeleton.tsx`) so filter/sort/search show a
+skeleton (the toolbar transition previously suppressed the fallback); the toolbar
+shows an instant `isPending` spinner. **Car photos** (multiple): upload in the
+assess form (`photo-upload.tsx`, browser client → **private** `car-photos` bucket,
+RLS own-folder), thumbnail in the list (`car-thumb.tsx`), gallery on the detail
+page; server-side signed URLs (`_photos.ts`, 1 h). Migration `0006_car_photos`
+adds `cars.photos text[]`; schema bounds to 8; service persists them.
+
+Current totals: **83 Vitest + 18/18 live Playwright**, tsc + lint + build clean;
+migrations `0001`–`0006` applied (+ the `car-photos` storage bucket & policies).
 
 ---
 

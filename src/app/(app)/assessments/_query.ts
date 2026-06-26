@@ -4,7 +4,7 @@ import type { AssessmentListItem } from "./_shared";
 export const RESULT_CAP = 500;
 
 const LIST_SELECT =
-  "id, created_at, recommendation, max_offer, history_status, review_status, purchase_price, cars(year, make, model, plate, seller_asking_price)";
+  "id, created_at, recommendation, max_offer, history_status, review_status, purchase_price, cars(year, make, model, plate, seller_asking_price, photos)";
 
 export type AssessmentParams = Record<string, string | undefined>;
 

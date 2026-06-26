@@ -46,6 +46,21 @@ describe("parseCarInput — allowed edge cases", () => {
     const r = parseCarInput(valid({ make: "  Mazda  " }));
     expect(r.ok && r.data.make).toBe("Mazda");
   });
+
+  it("accepts up to 8 photo paths and uppercases the VIN", () => {
+    const photos = Array.from({ length: 8 }, (_, i) => `u/x/${i}.jpg`);
+    const r = parseCarInput(valid({ vin: "abc123", photos }));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.photos).toHaveLength(8);
+      expect(r.data.vin).toBe("ABC123");
+    }
+  });
+
+  it("rejects more than 8 photos", () => {
+    const photos = Array.from({ length: 9 }, (_, i) => `u/x/${i}.jpg`);
+    expect(parseCarInput(valid({ photos })).ok).toBe(false);
+  });
 });
 
 describe("parseCarInput — negative cases (must reject)", () => {
