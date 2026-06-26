@@ -53,6 +53,10 @@ function isPpsrEligible(rec: Recommendation, maxOffer: number | null): boolean {
   return maxOffer !== null && (rec === "buy" || rec === "check");
 }
 
+/** PostgREST returns numeric columns as strings; coerce to number | null. */
+const numOrNull = (x: number | string | null | undefined): number | null =>
+  x == null ? null : Number(x);
+
 // ---------------------------------------------------------------------------
 // Phase 1 — price-only assessment (no PPSR)
 // ---------------------------------------------------------------------------
@@ -192,7 +196,14 @@ interface StoredAssessment {
     trim: string | null;
     kilometres: number;
   } | null;
-  valuations: { source: string } | null;
+  valuations: {
+    source: string;
+    wholesale_low: number | string | null;
+    wholesale_high: number | string | null;
+    retail_low: number | string | null;
+    retail_high: number | string | null;
+    selected_wholesale_value: number | string | null;
+  } | null;
 }
 
 export interface RunHistoryCheckDeps {
@@ -210,7 +221,7 @@ export async function runHistoryCheck({
   const { data, error } = await supabase
     .from("assessments")
     .select(
-      "id, car_id, history_status, breakdown, cars(plate, vin, year, make, model, trim, kilometres), valuations(source)",
+      "id, car_id, history_status, breakdown, cars(plate, vin, year, make, model, trim, kilometres), valuations(source, wholesale_low, wholesale_high, retail_low, retail_high, selected_wholesale_value)",
     )
     .eq("id", assessmentId)
     .maybeSingle();
@@ -310,11 +321,13 @@ export async function runHistoryCheck({
       breakdown: pricing.breakdown,
       valuation: {
         source: row.valuations?.source ?? "unknown",
-        wholesaleLow: null,
-        wholesaleHigh: null,
-        retailLow: null,
-        retailHigh: null,
-        selectedWholesaleValue: b.selectedWholesaleValue,
+        wholesaleLow: numOrNull(row.valuations?.wholesale_low),
+        wholesaleHigh: numOrNull(row.valuations?.wholesale_high),
+        retailLow: numOrNull(row.valuations?.retail_low),
+        retailHigh: numOrNull(row.valuations?.retail_high),
+        selectedWholesaleValue:
+          numOrNull(row.valuations?.selected_wholesale_value) ??
+          b.selectedWholesaleValue,
       },
       history,
       provisional: false,

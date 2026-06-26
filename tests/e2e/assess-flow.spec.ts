@@ -25,9 +25,14 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     const ppsr = page.getByRole("button", { name: /Run PPSR check/ });
     await expect(ppsr).toBeVisible();
 
-    // Phase 2: run PPSR. Clean car → stays Buy, and the step is consumed.
+    // Source data: RedBook ranges show; PPSR not run yet.
+    await expect(page.getByText(/Wholesale range/i)).toBeVisible();
+    await expect(page.getByText(/Not checked yet/i)).toBeVisible();
+
+    // Phase 2: run PPSR. Clean car → stays Buy, history checks populate.
     await ppsr.click();
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+    await expect(page.getByText("Clear").first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Run PPSR check/ }),
     ).toBeHidden();
@@ -56,6 +61,7 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     await page.getByRole("button", { name: /Run PPSR check/ }).click();
     await expect(page.getByText("Check", { exact: true })).toBeVisible();
     await expect(page.getByText(/Finance is owing/i)).toBeVisible();
+    await expect(page.getByText("Flagged").first()).toBeVisible();
   });
 
   test("a price Pass is never offered the paid PPSR check", async ({ page }) => {

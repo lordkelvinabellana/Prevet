@@ -40,7 +40,14 @@ interface DetailRow {
     vin: string | null;
     kilometres: number;
   } | null;
-  valuations: { source: string } | null;
+  valuations: {
+    source: string;
+    wholesale_low: number | string | null;
+    wholesale_high: number | string | null;
+    retail_low: number | string | null;
+    retail_high: number | string | null;
+    selected_wholesale_value: number | string | null;
+  } | null;
   history_checks: {
     source: string;
     finance_owing: boolean;
@@ -55,6 +62,10 @@ const dateFmt = new Intl.DateTimeFormat("en-AU", {
   timeStyle: "short",
 });
 
+/** PostgREST returns numeric columns as strings; coerce to number | null. */
+const numOrNull = (x: number | string | null | undefined): number | null =>
+  x == null ? null : Number(x);
+
 export default async function AssessmentDetailPage({
   params,
 }: {
@@ -66,7 +77,7 @@ export default async function AssessmentDetailPage({
   const { data } = await supabase
     .from("assessments")
     .select(
-      "*, cars(year, make, model, trim, plate, vin, kilometres), valuations(source), history_checks(source, finance_owing, stolen, written_off, notes)",
+      "*, cars(year, make, model, trim, plate, vin, kilometres), valuations(source, wholesale_low, wholesale_high, retail_low, retail_high, selected_wholesale_value), history_checks(source, finance_owing, stolen, written_off, notes)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -91,11 +102,13 @@ export default async function AssessmentDetailPage({
     breakdown: row.breakdown,
     valuation: {
       source: row.valuations?.source ?? "unknown",
-      wholesaleLow: null,
-      wholesaleHigh: null,
-      retailLow: null,
-      retailHigh: null,
-      selectedWholesaleValue: row.breakdown.selectedWholesaleValue,
+      wholesaleLow: numOrNull(row.valuations?.wholesale_low),
+      wholesaleHigh: numOrNull(row.valuations?.wholesale_high),
+      retailLow: numOrNull(row.valuations?.retail_low),
+      retailHigh: numOrNull(row.valuations?.retail_high),
+      selectedWholesaleValue:
+        numOrNull(row.valuations?.selected_wholesale_value) ??
+        row.breakdown.selectedWholesaleValue,
     },
     history: hist
       ? {

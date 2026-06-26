@@ -54,6 +54,40 @@ function Flag({ tone, children }: { tone: "rose" | "amber"; children: string }) 
   );
 }
 
+function SourceRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function HistoryCheck({
+  label,
+  flagged,
+  tone = "rose",
+}: {
+  label: string;
+  flagged: boolean;
+  tone?: "rose" | "amber";
+}) {
+  const flaggedCls =
+    tone === "amber"
+      ? "text-amber-700 dark:text-amber-500"
+      : "text-rose-700 dark:text-rose-400";
+  return (
+    <div className="flex items-center justify-between gap-4 py-1 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      {flagged ? (
+        <span className={flaggedCls}>⚠ Flagged</span>
+      ) : (
+        <span className="text-emerald-700 dark:text-emerald-500">✓ Clear</span>
+      )}
+    </div>
+  );
+}
+
 export function Verdict({ result }: { result: AssessmentResponse }) {
   const rec = result.recommendation;
   const { breakdown, valuation, history } = result;
@@ -151,6 +185,68 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
         )}
       </div>
 
+      {/* Source data — the mock RedBook / PPSR inputs behind the verdict,
+          so the result can be cross-referenced. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-border p-4">
+          <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+            Valuation · {valuation.source}
+          </p>
+          {valuation.selectedWholesaleValue !== null ? (
+            <>
+              {valuation.wholesaleLow !== null &&
+                valuation.wholesaleHigh !== null && (
+                  <SourceRow
+                    label="Wholesale range"
+                    value={`${formatAud(valuation.wholesaleLow)} – ${formatAud(valuation.wholesaleHigh)}`}
+                  />
+                )}
+              {valuation.retailLow !== null &&
+                valuation.retailHigh !== null && (
+                  <SourceRow
+                    label="Retail range"
+                    value={`${formatAud(valuation.retailLow)} – ${formatAud(valuation.retailHigh)}`}
+                  />
+                )}
+              <SourceRow
+                label="Selected wholesale"
+                value={formatAud(valuation.selectedWholesaleValue)}
+              />
+            </>
+          ) : (
+            <p className="py-1 text-sm text-muted-foreground">
+              No valuation available.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-border p-4">
+          <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+            History · {history ? history.source : "PPSR"}
+          </p>
+          {history ? (
+            <>
+              <HistoryCheck label="Stolen" flagged={history.stolen} />
+              <HistoryCheck label="Written off" flagged={history.writtenOff} />
+              <HistoryCheck
+                label="Finance owing"
+                flagged={history.financeOwing}
+                tone="amber"
+              />
+              {history.notes && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {history.notes}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="py-1 text-sm text-muted-foreground">
+              Not checked yet — run the PPSR check.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Plain-English reasoning, straight from the engine. */}
       <p className="text-sm leading-relaxed text-foreground/80">
         {result.reasoning}
@@ -168,10 +264,7 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
             </span>
           ))}
         </div>
-        <p>
-          Valuation: {valuation.source} · History:{" "}
-          {history ? history.source : "not checked"} · Saved for review.
-        </p>
+        <p>Saved for review.</p>
       </div>
     </div>
   );
