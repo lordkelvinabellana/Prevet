@@ -102,8 +102,15 @@ no more typing URLs. Home (`(app)/page.tsx`) reworked into a launchpad (hero +
 - Tests now: **72 Vitest** + **12/12 live Playwright** (added inline-error +
   not-found). `npx tsc --noEmit` + `next build` clean.
 
+## Slice 4 — Reviewer notes ✅
+Reviewers can leave an optional free-text note when marking an assessment
+reviewed (migration `0003_reviewer_note`, applied via MCP → `assessments.
+reviewer_note`). Entered via a Textarea in the detail review form, shown under
+the reviewed line. New `components/ui/textarea.tsx`. 72 Vitest + 12/12 live
+Playwright (happy path enters a note and asserts it displays).
+
 ### Possible next slices (not started)
-- Roles (creator vs reviewer); reviewer notes on assessments.
+- Roles (creator vs reviewer).
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
 - Generated Supabase types (`supabase gen types`) replacing hand-written `db.ts`.
 - Edit/re-run an assessment; CSV export; pagination beyond the 500 cap.
