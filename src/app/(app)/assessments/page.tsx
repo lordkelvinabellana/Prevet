@@ -5,10 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { StatCards } from "./stat-cards";
 import { AssessmentsToolbar } from "./assessments-toolbar";
-import { AssessmentsTable } from "./assessments-table";
-import { AssessmentCard } from "./assessment-card";
+import { AssessmentsResults } from "./assessments-results";
+import { ResultsSkeleton } from "./results-skeleton";
 import { getAssessmentStats } from "./_stats";
-import { fetchFilteredAssessments, RESULT_CAP } from "./_query";
 
 export const metadata: Metadata = {
   title: "Assessments · Car Pre-Vetting Tool",
@@ -31,8 +30,8 @@ export default async function AssessmentsPage({
   const sp = await searchParams;
   const supabase = await createClient();
   const stats = await getAssessmentStats(supabase);
-  const { rows, error } = await fetchFilteredAssessments(supabase, sp);
-  const filtersActive = Boolean(sp.verdict || sp.status || sp.q);
+  // Re-suspends the results (showing the skeleton) whenever a query param changes.
+  const resultsKey = [sp.verdict, sp.status, sp.q, sp.sort, sp.dir].join("|");
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
@@ -55,11 +54,7 @@ export default async function AssessmentsPage({
         </div>
       </header>
 
-      {error ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          Couldn&apos;t load assessments. Try again.
-        </p>
-      ) : stats.total === 0 ? (
+      {stats.total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-12 text-center">
           <p className="font-medium">No assessments yet</p>
           <p className="max-w-xs text-sm text-muted-foreground">
@@ -77,37 +72,9 @@ export default async function AssessmentsPage({
             <AssessmentsToolbar />
           </Suspense>
 
-          <p className="text-sm text-muted-foreground">
-            {rows.length === stats.total
-              ? `${stats.total} assessment${stats.total === 1 ? "" : "s"}`
-              : `${rows.length} of ${stats.total}`}
-            {rows.length === RESULT_CAP ? ` (showing first ${RESULT_CAP})` : ""}
-          </p>
-
-          {rows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-12 text-center">
-              <p className="font-medium">No matches</p>
-              <p className="max-w-xs text-sm text-muted-foreground">
-                No assessments match the current filters.
-              </p>
-              {filtersActive && (
-                <Button asChild variant="outline" size="sm" className="mt-1">
-                  <Link href="/assessments">Clear filters</Link>
-                </Button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="hidden md:block">
-                <AssessmentsTable rows={rows} params={sp} />
-              </div>
-              <div className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border md:hidden">
-                {rows.map((row) => (
-                  <AssessmentCard key={row.id} row={row} />
-                ))}
-              </div>
-            </>
-          )}
+          <Suspense key={resultsKey} fallback={<ResultsSkeleton />}>
+            <AssessmentsResults sp={sp} total={stats.total} />
+          </Suspense>
         </div>
       )}
     </div>

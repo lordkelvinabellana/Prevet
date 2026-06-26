@@ -29,7 +29,7 @@ export function AssessmentsToolbar() {
   const pathname = usePathname();
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   function replace(sp: URLSearchParams) {
     startTransition(() =>
@@ -62,14 +62,24 @@ export function AssessmentsToolbar() {
   const activeStatus = params.get("status");
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <Input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search plate, make, or model…"
-        aria-label="Search assessments"
-        className="sm:max-w-xs"
-      />
+    <div
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      aria-busy={isPending}
+    >
+      <div className="relative sm:max-w-xs sm:flex-1">
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search plate, make, or model…"
+          aria-label="Search assessments"
+        />
+        {isPending && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground"
+          />
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {VERDICTS.map((v) => (
           <button
