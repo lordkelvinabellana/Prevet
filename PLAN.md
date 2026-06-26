@@ -307,8 +307,17 @@ on the detail page + per-row trash. **Edit + re-run**: `reassessInPlace()` +
 recomputed, never hand-edited; history resets); `/assessments/[id]/edit` form;
 `PhotoUpload` `initial` prop keeps existing photos.
 
+### Detail & table UX polish ✅
+
+Detail Edit/Delete became icon buttons + notes moved above the verdict. The table
+PPSR/Status columns use colour + icons (green check / amber clock). `formatAud`
+now shows exact cents when present (saved-vs-asking transparent on cards/detail/
+dashboard; engine still stores whole max-offer/buffer). Migration `0008` adds
+`assessments.updated_at` (+ trigger), shown/sorted as AU `dd/mm/yy + time` pinned
+to Australia/Perth — so editing a listing updates its date.
+
 Current totals: **85 Vitest + 22/22 live Playwright**, tsc + lint + build clean;
-migrations `0001`–`0007` applied (+ the `car-photos` storage bucket & policies).
+migrations `0001`–`0008` applied (+ the `car-photos` storage bucket & policies).
 
 ---
 

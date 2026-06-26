@@ -260,6 +260,21 @@ Two UX slices:
 - 85 Vitest + **22/22 live Playwright**; storage/delete RLS isolation proven; tsc +
   lint + build + env-less build clean. Migrations `0001`–`0007`.
 
+## Detail & table UX polish ✅
+- **Detail view** (`08e9e0a`): Edit/Delete are now icon buttons (the bar was
+  word-heavy); recorded notes moved above the verdict.
+- **Table feedback** (`a255be4`): PPSR + Status columns use colour + icons (green
+  check = checked/reviewed/bought, amber clock = pending; label collapses to
+  icon-only below `lg`).
+- **Exact money**: `formatAud` keeps cents when present (min 0 / max 2) so
+  saved-vs-asking and any fractional figure is exact on cards/detail/dashboard
+  (whole amounts unchanged; the engine still rounds max-offer/buffer by design).
+- **Last-updated date**: migration `0008` adds `assessments.updated_at` + a
+  trigger that bumps it on every change, so editing a listing updates its date.
+  Shown (and sorted by) as AU `dd/mm/yy + time`, pinned to **Australia/Perth**.
+- 85 Vitest + 22/22 live Playwright; trigger verified via MCP; migrations
+  `0001`–`0008`.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.
