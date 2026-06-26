@@ -109,6 +109,13 @@ reviewer_note`). Entered via a Textarea in the detail review form, shown under
 the reviewed line. New `components/ui/textarea.tsx`. 72 Vitest + 12/12 live
 Playwright (happy path enters a note and asserts it displays).
 
+## Source data on the offer card ✅
+The offer card (and detail) now shows the **mock RedBook** valuation
+(wholesale/retail ranges + selected) and the **PPSR** checks (Clear/Flagged +
+notes), so a non-technical reviewer can cross-reference inputs → verdict. Plumbed
+the valuation range columns through `runHistoryCheck` + the detail query (were
+nulled). `verdict.tsx`. 72 Vitest + 12/12 live Playwright.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.

@@ -370,7 +370,10 @@ the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`.
 - **verdict.tsx** renders the result as an "appraisal docket": a colored
   Buy/Pass/Check band, the max offer, and a **subtraction ledger** showing
   `wholesale − repairs − buffer = max offer` so the number is checkable at a
-  glance. The same component is reused on the assessment detail page.
+  glance. It also shows a **Source data** panel — the RedBook wholesale/retail
+  ranges + selected value, and the PPSR checks as Clear/Flagged — so the inputs
+  behind the verdict are visible and cross-referenceable. The same component is
+  reused on the assessment detail page.
 - **`assessments/` (the dashboard)** lists every saved verdict as a sortable,
   filterable, searchable table (cards on mobile) with summary stat cards. All
   state lives in the URL (`?verdict=&status=&q=&sort=&dir=`), so views are
