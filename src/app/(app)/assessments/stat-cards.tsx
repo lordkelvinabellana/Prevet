@@ -1,17 +1,8 @@
 import { VERDICT_DOT } from "./_shared";
 import { formatAud } from "@/lib/pricing/explain";
+import type { AssessmentStats } from "./_stats";
 
-export interface AssessmentStats {
-  total: number;
-  buy: number;
-  check: number;
-  pass: number;
-  awaitingPpsr: number;
-  awaitingReview: number;
-  purchased: number;
-  totalSpent: number;
-  totalSaved: number;
-}
+export type { AssessmentStats };
 
 function DealCard({
   label,

@@ -3,64 +3,24 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { StatCards, type AssessmentStats } from "./stat-cards";
+import { StatCards } from "./stat-cards";
 import { AssessmentsToolbar } from "./assessments-toolbar";
 import { AssessmentsTable } from "./assessments-table";
 import { AssessmentCard } from "./assessment-card";
-import { needsPpsr, SORT_COLS, type AssessmentListItem, type SortCol } from "./_shared";
-import type { Recommendation } from "@/lib/pricing/reason-codes";
+import { getAssessmentStats } from "./_stats";
+import { fetchFilteredAssessments, RESULT_CAP } from "./_query";
 
 export const metadata: Metadata = {
   title: "Assessments · Car Pre-Vetting Tool",
 };
 
-const RESULT_CAP = 500;
-
 type SearchParams = Record<string, string | undefined>;
 
-function parseSort(v: string | undefined): SortCol {
-  return SORT_COLS.includes(v as SortCol) ? (v as SortCol) : "created_at";
-}
-
-interface StatRow {
-  recommendation: Recommendation;
-  history_status: "not_checked" | "checked";
-  review_status: "pending" | "reviewed";
-  max_offer: number | string | null;
-  purchase_price: number | string | null;
-  cars: { seller_asking_price: number | string | null } | null;
-}
-
-function computeStats(rows: StatRow[]): AssessmentStats {
-  const s: AssessmentStats = {
-    total: rows.length,
-    buy: 0,
-    check: 0,
-    pass: 0,
-    awaitingPpsr: 0,
-    awaitingReview: 0,
-    purchased: 0,
-    totalSpent: 0,
-    totalSaved: 0,
-  };
-  for (const r of rows) {
-    if (r.recommendation === "buy") s.buy++;
-    else if (r.recommendation === "check") s.check++;
-    else if (r.recommendation === "pass") s.pass++;
-    if (needsPpsr(r)) s.awaitingPpsr++;
-    if (r.review_status === "pending") s.awaitingReview++;
-    const price = r.purchase_price == null ? null : Number(r.purchase_price);
-    if (price !== null) {
-      s.purchased++;
-      s.totalSpent += price;
-      const asking =
-        r.cars?.seller_asking_price == null
-          ? null
-          : Number(r.cars.seller_asking_price);
-      if (asking !== null) s.totalSaved += asking - price;
-    }
-  }
-  return s;
+function exportHref(sp: SearchParams): string {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) if (v) p.set(k, v);
+  const qs = p.toString();
+  return `/api/assessments/export${qs ? `?${qs}` : ""}`;
 }
 
 export default async function AssessmentsPage({
@@ -69,65 +29,10 @@ export default async function AssessmentsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const verdict = (["buy", "check", "pass"].includes(sp.verdict ?? "")
-    ? sp.verdict
-    : undefined) as Recommendation | undefined;
-  const status = (["needs_ppsr", "needs_review", "purchased"].includes(
-    sp.status ?? "",
-  )
-    ? sp.status
-    : undefined) as "needs_ppsr" | "needs_review" | "purchased" | undefined;
-  const sort = parseSort(sp.sort);
-  const dir =
-    sp.dir === "asc" ? "asc" : sp.dir === "desc" ? "desc" : sort === "created_at" ? "desc" : "asc";
-  const q = (sp.q ?? "").trim();
-
   const supabase = await createClient();
-
-  // Stats are global (all verdicts), independent of the active filter.
-  const { data: statData } = await supabase
-    .from("assessments")
-    .select(
-      "recommendation, history_status, review_status, max_offer, purchase_price, cars(seller_asking_price)",
-    );
-  const stats = computeStats((statData ?? []) as unknown as StatRow[]);
-
-  // Main query: DB-side filter + sort + cap. Text search is applied in memory
-  // (over the joined car) since it spans an embedded resource and the set is small.
-  let query = supabase
-    .from("assessments")
-    .select(
-      "id, created_at, recommendation, max_offer, history_status, review_status, purchase_price, cars(year, make, model, plate, seller_asking_price)",
-    )
-    .order(sort, { ascending: dir === "asc" })
-    .limit(RESULT_CAP);
-  if (verdict) query = query.eq("recommendation", verdict);
-  if (status === "needs_ppsr") {
-    query = query
-      .eq("history_status", "not_checked")
-      .not("max_offer", "is", null)
-      .in("recommendation", ["buy", "check"]);
-  }
-  if (status === "needs_review") query = query.eq("review_status", "pending");
-  if (status === "purchased") query = query.not("purchase_price", "is", null);
-
-  const { data, error } = await query;
-  let rows = (data ?? []) as unknown as AssessmentListItem[];
-
-  if (q) {
-    const needle = q.toLowerCase();
-    rows = rows.filter((r) => {
-      const c = r.cars;
-      return (
-        !!c &&
-        [c.make, c.model, c.plate ?? ""].some((s) =>
-          s.toLowerCase().includes(needle),
-        )
-      );
-    });
-  }
-
-  const filtersActive = Boolean(verdict || status || q);
+  const stats = await getAssessmentStats(supabase);
+  const { rows, error } = await fetchFilteredAssessments(supabase, sp);
+  const filtersActive = Boolean(sp.verdict || sp.status || sp.q);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -138,9 +43,16 @@ export default async function AssessmentsPage({
             Every pre-vetted car — sort, filter, and search the queue.
           </p>
         </div>
-        <Button asChild size="lg">
-          <Link href="/assess">New assessment</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {stats.total > 0 && (
+            <Button asChild variant="outline" size="lg">
+              <a href={exportHref(sp)}>Export CSV</a>
+            </Button>
+          )}
+          <Button asChild size="lg">
+            <Link href="/assess">New assessment</Link>
+          </Button>
+        </div>
       </header>
 
       {error ? (
