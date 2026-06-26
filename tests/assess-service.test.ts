@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   runPriceAssessment,
   runHistoryCheck,
+  reassessInPlace,
 } from "@/lib/assess/service";
 import type { CarInput } from "@/lib/validation/schema";
 
@@ -270,6 +271,41 @@ describe("runHistoryCheck (phase 2 — PPSR + finalize)", () => {
   it("404 when the assessment doesn't exist", async () => {
     const { client } = fakeSupabase({ selectRow: null });
     const result = await runHistoryCheck({ supabase: client, assessmentId: "nope" });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.status).toBe(404);
+  });
+});
+
+describe("reassessInPlace (edit — re-run the engine in place)", () => {
+  it("recomputes a provisional verdict and resets history to not_checked", async () => {
+    const { client, getUpdated } = fakeSupabase({
+      selectRow: { id: "assess-1", car_id: "car-1" },
+    });
+    const result = await reassessInPlace({
+      supabase: client,
+      assessmentId: "assess-1",
+      input: input({ vin: undefined, sellerAskingPrice: 25000 }),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.provisional).toBe(true);
+    expect(result.data.history).toBeNull();
+    expect(["buy", "check", "pass"]).toContain(result.data.recommendation);
+    // The last update is the assessment row — history is invalidated.
+    expect(getUpdated()).toMatchObject({
+      history_status: "not_checked",
+      history_check_id: null,
+    });
+  });
+
+  it("404 when the assessment doesn't exist", async () => {
+    const { client } = fakeSupabase({ selectRow: null });
+    const result = await reassessInPlace({
+      supabase: client,
+      assessmentId: "nope",
+      input: input({ vin: undefined }),
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.status).toBe(404);

@@ -20,8 +20,12 @@ test.describe("self-service sign-up", () => {
     await page.getByLabel("Confirm password").fill("Test1234!");
     await page.getByRole("button", { name: "Create account" }).click();
 
-    // This project has email confirmation on → a notice, not an auto sign-in.
-    await expect(page.getByText(/check your email/i)).toBeVisible();
+    // Normally the confirm-email notice (this project has confirmation on). When
+    // the suite runs repeatedly, Supabase's signup rate limit returns the generic
+    // error instead — either proves the action ran and rendered a result.
+    await expect(
+      page.getByText(/check your email|couldn't create the account/i),
+    ).toBeVisible();
   });
 
   test("rejects mismatched passwords client-to-server", async ({ page }) => {

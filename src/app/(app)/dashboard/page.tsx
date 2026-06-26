@@ -62,6 +62,8 @@ export default async function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="lg">
+            {/* API download route, not a page — a real anchor is correct here. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/api/assessments/export">Export CSV</a>
           </Button>
           <Button asChild size="lg">

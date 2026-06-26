@@ -29,12 +29,22 @@ function safeName(name: string): string {
  */
 export function PhotoUpload({
   onChange,
+  initial,
 }: {
   onChange: (paths: string[]) => void;
+  /** Already-uploaded photos to show on mount (edit flow): path + signed URL. */
+  initial?: { path: string; url: string }[];
 }) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<Item[]>(() =>
+    (initial ?? []).map((it, i) => ({
+      key: `init-${i}-${it.path}`,
+      preview: it.url,
+      path: it.path,
+      status: "done" as const,
+    })),
+  );
   const [error, setError] = useState<string | null>(null);
 
   function emit(next: Item[]) {

@@ -64,11 +64,15 @@ export type AssessmentServiceResult =
 async function findExistingAssessmentByVin(
   supabase: SupabaseClient,
   vin: string,
+  excludeCarId?: string,
 ): Promise<string | null> {
-  const { data } = await supabase
+  let q = supabase
     .from("assessments")
     .select("id, created_at, cars!inner(vin)")
-    .ilike("cars.vin", vin)
+    .ilike("cars.vin", vin);
+  // When re-assessing, the car keeps its own VIN — don't flag it against itself.
+  if (excludeCarId) q = q.neq("car_id", excludeCarId);
+  const { data } = await q
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -373,6 +377,153 @@ export async function runHistoryCheck({
       history,
       provisional: false,
       ppsrEligible: false,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Edit — re-assess an existing car in place (re-runs the deterministic engine)
+// ---------------------------------------------------------------------------
+
+export interface ReassessDeps {
+  supabase: SupabaseClient;
+  assessmentId: string;
+  input: CarInput;
+  /** Injectable for tests; defaults to the deterministic mock. */
+  valuationAdapter?: ValuationAdapter;
+}
+
+/**
+ * Apply edited car details and re-run the price-only engine in place. The verdict
+ * is never hand-edited — it's recomputed. Because the inputs changed, any prior
+ * PPSR is invalidated: history resets to `not_checked` so the user can re-run it.
+ */
+export async function reassessInPlace({
+  supabase,
+  assessmentId,
+  input,
+  valuationAdapter = mockValuationAdapter,
+}: ReassessDeps): Promise<AssessmentServiceResult> {
+  const { data: existing } = await supabase
+    .from("assessments")
+    .select("id, car_id")
+    .eq("id", assessmentId)
+    .maybeSingle();
+  const found = existing as { id: string; car_id: string } | null;
+  if (!found) {
+    return { ok: false, status: 404, error: "Assessment not found." };
+  }
+  const carId = found.car_id;
+
+  // Don't flag the car's own VIN against itself; do flag a clash with another car.
+  if (input.vin) {
+    const dupId = await findExistingAssessmentByVin(supabase, input.vin, carId);
+    if (dupId) {
+      return {
+        ok: false,
+        status: 409,
+        code: "duplicate_vin",
+        error: "You've already assessed a car with this VIN.",
+        existingAssessmentId: dupId,
+      };
+    }
+  }
+
+  const identity: CarIdentity = {
+    plate: input.plate ?? null,
+    vin: input.vin ?? null,
+    year: input.year,
+    make: input.make,
+    model: input.model,
+    trim: input.trim ?? null,
+    kilometres: input.kilometres,
+  };
+
+  let valuation: ValuationResult;
+  try {
+    valuation = await valuationAdapter.getValuation(identity);
+  } catch (err) {
+    if (err instanceof AdapterError) {
+      return { ok: false, status: 503, error: err.message, code: err.code };
+    }
+    throw err;
+  }
+
+  const pricing = assess({
+    sellerAskingPrice: input.sellerAskingPrice,
+    repairCost: input.repairCost,
+    valuation: { selectedWholesaleValue: valuation.selectedWholesaleValue },
+    history: null,
+  });
+  const reasoning = explain(pricing);
+
+  const { error: carErr } = await supabase
+    .from("cars")
+    .update({
+      plate: identity.plate,
+      vin: identity.vin,
+      year: input.year,
+      make: input.make,
+      model: input.model,
+      trim: identity.trim,
+      kilometres: input.kilometres,
+      seller_asking_price: input.sellerAskingPrice,
+      photos: input.photos ?? [],
+    })
+    .eq("id", carId);
+  if (carErr) {
+    return { ok: false, status: 500, error: "Failed to update the car." };
+  }
+
+  const { error: valErr } = await supabase
+    .from("valuations")
+    .update({
+      source: valuation.source,
+      wholesale_low: valuation.wholesaleLow,
+      wholesale_high: valuation.wholesaleHigh,
+      retail_low: valuation.retailLow,
+      retail_high: valuation.retailHigh,
+      selected_wholesale_value: valuation.selectedWholesaleValue,
+    })
+    .eq("car_id", carId);
+  if (valErr) {
+    return { ok: false, status: 500, error: "Failed to update the valuation." };
+  }
+
+  const { error: aErr } = await supabase
+    .from("assessments")
+    .update({
+      repair_cost: input.repairCost,
+      risk_buffer: pricing.breakdown.riskBuffer,
+      max_offer: pricing.maxOffer,
+      recommendation: pricing.recommendation,
+      reasoning,
+      reason_codes: pricing.reasonCodes,
+      breakdown: pricing.breakdown,
+      // Inputs changed → prior PPSR no longer applies.
+      history_status: "not_checked",
+      history_check_id: null,
+    })
+    .eq("id", assessmentId);
+  if (aErr) {
+    return { ok: false, status: 500, error: "Failed to update the assessment." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      assessmentId,
+      carId,
+      recommendation: pricing.recommendation,
+      maxOffer: pricing.maxOffer,
+      riskBuffer: pricing.breakdown.riskBuffer,
+      reasonCodes: pricing.reasonCodes,
+      reasoning,
+      breakdown: pricing.breakdown,
+      valuation,
+      history: null,
+      provisional: true,
+      ppsrEligible: isPpsrEligible(pricing.recommendation, pricing.maxOffer),
     },
   };
 }

@@ -133,6 +133,24 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     await expect(page.getByRole("img", { name: "Car photo 1" })).toBeVisible();
   });
 
+  test("edit a car re-runs the engine and updates the verdict", async ({
+    page,
+  }) => {
+    await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: /Open & record purchase/i }).click();
+    await page.waitForURL(/\/assessments\/[0-9a-f-]{36}/);
+
+    await page.getByRole("link", { name: "Edit" }).click();
+    await page.waitForURL(/\/assessments\/[0-9a-f-]{36}\/edit$/);
+    // Push the asking price up so the same car now prices as a Pass.
+    await page.getByLabel("Seller asking").fill("38000");
+    await page.getByRole("button", { name: "Save & re-run" }).click();
+
+    await page.waitForURL(/\/assessments\/[0-9a-f-]{36}$/);
+    await expect(page.getByText("Pass", { exact: true })).toBeVisible();
+  });
+
   test("deletes an assessment — it's gone afterwards", async ({ page }) => {
     await fillAssessForm(page, { plate: "1ABC123", asking: 25000 });
     await expect(page.getByText("Buy", { exact: true })).toBeVisible();

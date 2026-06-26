@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/dal";
 import { Verdict } from "../../assess/verdict";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PpsrButton } from "../../assess/ppsr-button";
 import { RecordPurchaseDialog } from "../record-purchase-dialog";
 import { MarkReviewedDialog } from "../mark-reviewed-dialog";
@@ -238,11 +239,10 @@ export default async function AssessmentDetailPage({
             <RecordPurchaseDialog assessmentId={row.id} />
           )}
 
-          <DeleteAssessmentDialog
-            assessmentId={row.id}
-            redirectAfter
-            triggerClassName="ml-auto"
-          />
+          <Button asChild variant="outline" size="sm" className="ml-auto">
+            <Link href={`/assessments/${row.id}/edit`}>Edit</Link>
+          </Button>
+          <DeleteAssessmentDialog assessmentId={row.id} redirectAfter />
         </div>
 
         {purchasePrice !== null && (
