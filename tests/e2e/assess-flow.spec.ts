@@ -158,7 +158,7 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     await page.waitForURL(/\/assessments\/[0-9a-f-]{36}/);
     const detailUrl = page.url();
 
-    await page.getByRole("button", { name: "Delete" }).click(); // open the confirm
+    await page.getByRole("button", { name: "Delete assessment" }).click(); // icon trigger
     await page
       .getByRole("dialog")
       .getByRole("button", { name: "Delete" })

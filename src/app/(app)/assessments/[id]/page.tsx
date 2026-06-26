@@ -239,10 +239,30 @@ export default async function AssessmentDetailPage({
             <RecordPurchaseDialog assessmentId={row.id} />
           )}
 
-          <Button asChild variant="outline" size="sm" className="ml-auto">
-            <Link href={`/assessments/${row.id}/edit`}>Edit</Link>
+          <Button
+            asChild
+            variant="outline"
+            size="icon-sm"
+            className="ml-auto"
+            title="Edit"
+          >
+            <Link href={`/assessments/${row.id}/edit`} aria-label="Edit">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-4"
+                aria-hidden
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </Link>
           </Button>
-          <DeleteAssessmentDialog assessmentId={row.id} redirectAfter />
+          <DeleteAssessmentDialog assessmentId={row.id} redirectAfter iconOnly />
         </div>
 
         {purchasePrice !== null && (
@@ -266,11 +286,9 @@ export default async function AssessmentDetailPage({
         )}
       </div>
 
-      <Verdict result={result} />
-
-      {/* Recorded notes. */}
+      {/* Recorded notes — surfaced above the verdict so the human's take reads first. */}
       {(row.reviewer_note || row.purchase_note) && (
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="mb-6 flex flex-col gap-3">
           {row.reviewer_note && (
             <div className="rounded-xl border border-border p-4">
               <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
@@ -293,6 +311,8 @@ export default async function AssessmentDetailPage({
           )}
         </div>
       )}
+
+      <Verdict result={result} />
     </div>
   );
 }
