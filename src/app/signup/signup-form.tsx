@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { signup, type SignupState } from "./actions";
 
 export function SignupForm() {
@@ -47,10 +48,9 @@ export function SignupForm() {
         <label htmlFor="password" className="text-sm font-medium">
           Password
         </label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           placeholder="At least 8 characters"
           required
@@ -61,10 +61,9 @@ export function SignupForm() {
         <label htmlFor="confirm" className="text-sm font-medium">
           Confirm password
         </label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
           autoComplete="new-password"
           required
         />

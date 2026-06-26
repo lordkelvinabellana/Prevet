@@ -38,8 +38,23 @@ export async function signup(
   });
 
   if (error) {
-    // Generic — don't reveal whether the email is already registered.
-    return { error: "Couldn't create the account. Try a different email." };
+    const msg = (error.message ?? "").toLowerCase();
+    if (
+      error.status === 429 ||
+      msg.includes("rate") ||
+      msg.includes("seconds") ||
+      msg.includes("security purposes")
+    ) {
+      return {
+        error: "Too many sign-up attempts. Please wait a minute and try again.",
+      };
+    }
+    if (msg.includes("already") || msg.includes("registered")) {
+      return {
+        error: "That email already has an account — try signing in instead.",
+      };
+    }
+    return { error: "Couldn't create the account. Please try again." };
   }
 
   // Email confirmation OFF → a session is returned and the user is signed in.

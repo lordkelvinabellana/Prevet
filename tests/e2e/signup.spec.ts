@@ -21,10 +21,10 @@ test.describe("self-service sign-up", () => {
     await page.getByRole("button", { name: "Create account" }).click();
 
     // Normally the confirm-email notice (this project has confirmation on). When
-    // the suite runs repeatedly, Supabase's signup rate limit returns the generic
-    // error instead — either proves the action ran and rendered a result.
+    // the suite runs repeatedly, Supabase's signup rate limit returns an error
+    // instead — either way the action ran and rendered a result.
     await expect(
-      page.getByText(/check your email|couldn't create the account/i),
+      page.getByText(/check your email/i).or(page.getByRole("alert")),
     ).toBeVisible();
   });
 
