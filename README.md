@@ -40,8 +40,10 @@ Mono. Data is mock-only (no live RedBook / PPSR).
    (already applied to the project). To apply to a fresh project, run that SQL
    in the Supabase SQL editor or via the Supabase MCP / CLI.
 
-4. **Create a user** — Supabase dashboard → Authentication → Users → Add user.
-   Any authenticated user can create and review (Slice 1 has no roles).
+4. **Create a user** — self-register at **`/signup`** (email + password), or add
+   one in the Supabase dashboard → Authentication → Users. Each user sees only
+   their own data (per-user RLS); no roles yet. Note: email confirmation may be
+   required depending on the Supabase project's Auth settings.
 
 ## Run
 

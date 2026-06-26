@@ -296,8 +296,19 @@ RLS own-folder), thumbnail in the list (`car-thumb.tsx`), gallery on the detail
 page; server-side signed URLs (`_photos.ts`, 1 h). Migration `0006_car_photos`
 adds `cars.photos text[]`; schema bounds to 8; service persists them.
 
-Current totals: **83 Vitest + 18/18 live Playwright**, tsc + lint + build clean;
-migrations `0001`–`0006` applied (+ the `car-photos` storage bucket & policies).
+### Sign-up + assessment CRUD (edit / delete) ✅
+
+**Self-service sign-up** (`/signup` + `supabase.auth.signUp`; redirects home or
+shows a confirm-email notice; new users isolated by RLS). **Delete**: migration
+`0007` (`cars_delete_own`) — deleting the car cascades to valuation/history/
+assessment; `deleteAssessment()` clears photos from storage first; confirm dialog
+on the detail page + per-row trash. **Edit + re-run**: `reassessInPlace()` +
+`PATCH /api/assessments/[id]` re-run the engine on edited details (verdict
+recomputed, never hand-edited; history resets); `/assessments/[id]/edit` form;
+`PhotoUpload` `initial` prop keeps existing photos.
+
+Current totals: **85 Vitest + 22/22 live Playwright**, tsc + lint + build clean;
+migrations `0001`–`0007` applied (+ the `car-photos` storage bucket & policies).
 
 ---
 

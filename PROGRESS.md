@@ -241,6 +241,25 @@ Two UX slices:
   env-less build clean. Bucket is private; the browser client now reads
   `NEXT_PUBLIC_*` at runtime for uploads.
 
+## Sign-up + assessment CRUD (edit / delete) ✅
+- **Self-service sign-up** (`968759b`): `/signup` page + action
+  (`supabase.auth.signUp`); session back → redirect home, else "check your email"
+  notice. Cross-linked with `/login`; both public in the proxy gate. New users get
+  an isolated workspace automatically (per-user RLS). This project has email
+  confirmation **on**.
+- **Delete** (`274da2b`): migration `0007` (`cars_delete_own` RLS); deleting the
+  car cascades to its valuation/history/assessment. `deleteAssessment()` removes
+  the car's photos from storage first. Confirm dialog
+  (`delete-assessment-dialog.tsx`) on the detail page + a per-row trash in the
+  table/cards (card became a full-cover-link layout).
+- **Edit + re-run** (`1ba9a70`): `reassessInPlace()` + `PATCH /api/assessments/[id]`
+  re-runs the deterministic engine on edited car details (verdict never hand-
+  edited; history resets to `not_checked`). `/assessments/[id]/edit` page +
+  `edit-car-form.tsx`; `PhotoUpload` gained an `initial` prop to show/keep existing
+  photos. Edit button in the detail action bar.
+- 85 Vitest + **22/22 live Playwright**; storage/delete RLS isolation proven; tsc +
+  lint + build + env-less build clean. Migrations `0001`–`0007`.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.

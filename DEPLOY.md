@@ -45,6 +45,12 @@ Source of truth for the names is `.env.example`. The current project ref is
 - **Auth → URL Configuration**: add the production domain and the
   `*.vercel.app` preview URLs to the **Site URL** and **Redirect URLs** allow-list,
   or email-confirmation / redirect-based auth will fail in production.
+- **Sign-up**: `/signup` is self-service (`supabase.auth.signUp`). With email
+  **confirmation on** (the current setting), new users get a "check your email"
+  notice and must confirm before they can sign in — make sure the confirmation
+  email template points at your production URL. To let users in immediately,
+  turn confirmation off in **Auth → Providers → Email**. Registration is open;
+  add an allowlist/invite later if you don't want public sign-ups.
 - **Storage**: a **private** `car-photos` bucket with own-folder RLS already exists
   on the project (created via the Supabase MCP). The same project serves prod, so
   no action is needed. Car photos are uploaded **client-side** via the browser
