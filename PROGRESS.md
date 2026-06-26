@@ -162,6 +162,21 @@ Triaging the next car no longer means hand-clearing every field (commit
 - 77 Vitest + **15/15 live Playwright** (new: edit → stale → "Assess another"
   resets); tsc + build clean.
 
+## Mobile-friendly layout pass ✅
+A responsive sweep at ~375–390px (commit `1ee8ac5`, className-only):
+- `/assessments` Deals strip was `grid-cols-3` on every screen (three money
+  cards crammed) → `grid-cols-1 sm:grid-cols-3`, matching the dashboard. This was
+  the only real horizontal-overflow source.
+- Page shells + header `px-6` → `px-4 sm:px-6` (more phone width).
+- `/assessments` + `/dashboard` headers stack (title above the Export CSV / New
+  assessment buttons) on mobile instead of colliding.
+- Home hero `text-4xl` → `text-3xl sm:text-4xl`, `py-16` → `py-12 sm:py-16`;
+  detail identity line gets `break-words` (long VIN safety).
+- Verified: no horizontal overflow at 375px on `/`, `/assess`, `/assessments`,
+  detail, `/dashboard`. 77 Vitest + 15/15 live Playwright; tsc + build clean.
+- Left as-is (already mobile-safe): table↔card swap at `md`, the toolbar, the
+  radix dialogs. Touch-target/button-size redesign deliberately out of scope.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.

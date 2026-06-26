@@ -243,6 +243,17 @@ at the old assessment) are withdrawn behind an "Inputs changed — re-run" note;
 re-running clears it. Result column got `role="status" aria-live`; mobile scrolls
 the result into view after submit. Client-only (`assess/assess-form.tsx`).
 
+### Mobile-friendly layout pass ✅
+
+Responsive sweep at ~375–390px (className-only). The `/assessments` Deals strip
+was `grid-cols-3` on every screen (cramped) → `grid-cols-1 sm:grid-cols-3` to
+match the dashboard — the only real overflow source. Page shells + header
+`px-6` → `px-4 sm:px-6`; the `/assessments` and `/dashboard` headers stack on
+mobile; home hero scales down; detail identity line gets `break-words`. Verified
+no horizontal overflow at 375px across all routes. Table↔card swap, toolbar, and
+dialogs were already mobile-safe; button/touch-target sizing left as the
+intentional compact scale.
+
 Current totals: **77 Vitest + 15/15 live Playwright**, tsc + build clean;
 migrations `0001`–`0004` applied.
 
