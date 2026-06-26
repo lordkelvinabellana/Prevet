@@ -16,6 +16,30 @@ type FieldErrors = Record<string, string>;
 const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
 const text = (s: string) => (s.trim() === "" ? undefined : s.trim());
 
+const isMobile = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(max-width: 1023px)").matches;
+
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Focus on the next tick, after the state-driven re-render has mounted the target.
+function focusById(id: string) {
+  setTimeout(() => document.getElementById(id)?.focus(), 0);
+}
+
+// On stacked (mobile) layouts the columns sit one above the other, so bring the
+// target into view; on desktop the sticky result is already visible.
+function scrollIntoViewById(id: string) {
+  if (!isMobile()) return;
+  const behavior: ScrollBehavior = reducedMotion() ? "auto" : "smooth";
+  setTimeout(
+    () => document.getElementById(id)?.scrollIntoView({ behavior, block: "start" }),
+    0,
+  );
+}
+
 function buildPayload(v: FormValues) {
   return {
     plate: text(v.plate),
@@ -74,12 +98,17 @@ export function AssessForm() {
   const [result, setResult] = useState<AssessmentResponse | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  // Set when the form is edited after a verdict — the shown verdict no longer
+  // matches the inputs, so it's dimmed and its actions disabled until re-run.
+  const [stale, setStale] = useState(false);
 
   const set =
     (name: keyof FormValues) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setValues((v) => ({ ...v, [name]: value }));
+      // Editing after a verdict makes that verdict stale.
+      if (result && !loading) setStale(true);
       // Clear a field's error as soon as the user starts fixing it.
       setFieldErrors((errs) => {
         if (!errs[name]) return errs;
@@ -118,6 +147,10 @@ export function AssessForm() {
 
       if (res.ok) {
         setResult(body as AssessmentResponse);
+        setStale(false);
+        // Land on the next-car action; bring the result into view on mobile.
+        focusById("assess-another");
+        scrollIntoViewById("result");
       } else if (res.status === 400 && body.fields) {
         setFieldErrors(body.fields as FieldErrors);
         setFormError("Check the highlighted fields.");
@@ -138,6 +171,7 @@ export function AssessForm() {
   function applyPreset(v: FormValues) {
     setValues(v);
     setResult(null);
+    setStale(false);
     void runAssess(v);
   }
 
@@ -146,6 +180,14 @@ export function AssessForm() {
     setResult(null);
     setFieldErrors({});
     setFormError(null);
+    setStale(false);
+  }
+
+  // "Assess another" — wipe the form and jump back to the first field.
+  function resetForNext() {
+    clearForm();
+    focusById("plate");
+    scrollIntoViewById("plate");
   }
 
   return (
@@ -364,31 +406,58 @@ export function AssessForm() {
         </form>
 
         {/* Result */}
-        <div className="lg:sticky lg:top-6 lg:self-start">
+        <div
+          id="result"
+          role="status"
+          aria-live="polite"
+          className="lg:sticky lg:top-6 lg:self-start"
+        >
           {result ? (
             <div className="flex flex-col gap-4">
-              <Verdict result={result} />
-              {result.ppsrEligible && (
+              <Button id="assess-another" size="lg" onClick={resetForNext}>
+                Assess another
+              </Button>
+              {stale && (
+                <p className="text-xs text-amber-700 dark:text-amber-500">
+                  Inputs changed — re-run for an up-to-date verdict.
+                </p>
+              )}
+              <div
+                className={`transition-opacity ${
+                  stale ? "pointer-events-none opacity-60" : ""
+                }`}
+              >
+                <Verdict result={result} />
+              </div>
+              {!stale && result.ppsrEligible && (
                 <PpsrButton
                   assessmentId={result.assessmentId}
                   onResult={setResult}
                 />
               )}
-              <Button asChild variant="outline" size="lg">
-                <Link href={`/assessments/${result.assessmentId}`}>
-                  Open & record purchase
-                </Link>
-              </Button>
+              {!stale && (
+                <Button asChild variant="outline" size="lg">
+                  <Link href={`/assessments/${result.assessmentId}`}>
+                    Open & record purchase
+                  </Link>
+                </Button>
+              )}
             </div>
           ) : (
             <div className="flex min-h-64 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border p-8 text-center">
               <p className="font-medium">
-                {loading ? "Assessing…" : "No verdict yet"}
+                {loading
+                  ? "Assessing…"
+                  : formError
+                    ? "Couldn't get a verdict"
+                    : "No verdict yet"}
               </p>
               <p className="max-w-xs text-sm text-muted-foreground">
                 {loading
                   ? "Running valuation, history check, and the pricing engine."
-                  : "Fill in the car or pick a scenario to get a deterministic Buy / Pass / Check."}
+                  : formError
+                    ? "Check the form and try again."
+                    : "Fill in the car or pick a scenario to get a deterministic Buy / Pass / Check."}
               </p>
             </div>
           )}

@@ -65,6 +65,35 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     await expect(page.getByText("Flagged").first()).toBeVisible();
   });
 
+  test("editing after a verdict marks it stale; 'Assess another' resets the form", async ({
+    page,
+  }) => {
+    await page.goto("/assess");
+    await page.getByRole("button", { name: "Priced to buy" }).click();
+
+    // A verdict, with the next-car action offered.
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+    const assessAnother = page.getByRole("button", { name: "Assess another" });
+    await expect(assessAnother).toBeVisible();
+
+    // Editing an input makes the shown verdict stale: a note appears and the
+    // verdict's actions (which point at the old assessment) are withdrawn.
+    await page.getByLabel("Seller asking").fill("30000");
+    await expect(page.getByText(/Inputs changed — re-run/i)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Open & record purchase/i }),
+    ).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: /Run PPSR check/ }),
+    ).toBeHidden();
+
+    // "Assess another" empties the form, focuses Plate, and clears the result.
+    await assessAnother.click();
+    await expect(page.getByLabel("Plate")).toHaveValue("");
+    await expect(page.getByLabel("Plate")).toBeFocused();
+    await expect(page.getByText("No verdict yet")).toBeVisible();
+  });
+
   test("a price Pass is never offered the paid PPSR check", async ({ page }) => {
     await page.goto("/assess");
     await page.getByRole("button", { name: "Overpriced" }).click();
