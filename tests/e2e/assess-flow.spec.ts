@@ -42,8 +42,9 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     const row = page.getByRole("link", { name: /Toyota Corolla/ }).first();
     await expect(row).toBeVisible();
     await row.click();
+    await page.getByRole("button", { name: "Mark reviewed" }).click(); // opens dialog
     await page.getByLabel("Reviewer note").fill("Looks clean, proceed.");
-    await page.getByRole("button", { name: "Mark reviewed" }).click();
+    await page.getByRole("button", { name: "Confirm reviewed" }).click();
     await expect(page.getByText(/Reviewed/)).toBeVisible();
     await expect(page.getByText("Looks clean, proceed.")).toBeVisible();
   });

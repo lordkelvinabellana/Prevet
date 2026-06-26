@@ -13,9 +13,11 @@ import type { AssessmentResponse } from "@/lib/assess/service";
 export function PpsrButton({
   assessmentId,
   onResult,
+  size = "lg",
 }: {
   assessmentId: string;
   onResult?: (result: AssessmentResponse) => void;
+  size?: "sm" | "lg";
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -48,7 +50,7 @@ export function PpsrButton({
 
   return (
     <div className="flex flex-col gap-2">
-      <Button onClick={run} disabled={loading} size="lg">
+      <Button onClick={run} disabled={loading} size={size}>
         {loading ? "Running PPSR check…" : "Run PPSR check (~$2)"}
       </Button>
       {error && (

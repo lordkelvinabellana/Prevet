@@ -67,11 +67,12 @@ test.describe("UI: theme + responsive form", () => {
       .click();
     await page.waitForURL(/\/assessments\/[0-9a-f-]{36}/);
 
-    // Record a purchase below asking.
-    await page.getByLabel("Purchase price").fill("22000");
+    // Record a purchase below asking, via the popup.
     await page.getByRole("button", { name: "Record purchase" }).click();
-    await expect(page.getByText(/Purchased for/i)).toBeVisible();
-    await expect(page.getByText(/Saved .* vs asking/i)).toBeVisible();
+    await page.getByLabel("Purchase price").fill("22000");
+    await page.getByRole("button", { name: "Save purchase" }).click();
+    await expect(page.getByText(/Bought \$22,000/)).toBeVisible();
+    await expect(page.getByText(/saved .* vs asking/i)).toBeVisible();
 
     // The list surfaces the purchase.
     await page.goto("/assessments");

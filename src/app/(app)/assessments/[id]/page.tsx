@@ -4,11 +4,10 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/dal";
 import { Verdict } from "../../assess/verdict";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { PpsrButton } from "../../assess/ppsr-button";
-import { markReviewed, recordPurchase } from "../actions";
+import { RecordPurchaseDialog } from "../record-purchase-dialog";
+import { MarkReviewedDialog } from "../mark-reviewed-dialog";
 import { purchaseSavings } from "../_shared";
 import { formatAud } from "@/lib/pricing/explain";
 import type { PricingBreakdown } from "@/lib/pricing/engine";
@@ -68,9 +67,11 @@ const dateFmt = new Intl.DateTimeFormat("en-AU", {
   timeStyle: "short",
 });
 
-/** PostgREST returns numeric columns as strings; coerce to number | null. */
 const numOrNull = (x: number | string | null | undefined): number | null =>
   x == null ? null : Number(x);
+
+const OK_BADGE =
+  "border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-400";
 
 export default async function AssessmentDetailPage({
   params,
@@ -132,12 +133,12 @@ export default async function AssessmentDetailPage({
       (row.recommendation === "buy" || row.recommendation === "check"),
   };
 
-  const review = markReviewed.bind(null, row.id);
-  const purchase = recordPurchase.bind(null, row.id);
   const asking = row.breakdown.sellerAskingPrice;
   const purchasePrice = numOrNull(row.purchase_price);
   const savings =
     purchasePrice !== null ? purchaseSavings(asking, purchasePrice) : null;
+  const reviewed = row.review_status === "reviewed";
+  const reviewedByYou = row.reviewed_by != null && user?.id === row.reviewed_by;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -148,7 +149,7 @@ export default async function AssessmentDetailPage({
         ← All assessments
       </Link>
 
-      <header className="mb-6 mt-4 flex flex-col gap-1">
+      <header className="mb-4 mt-4 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           {car ? `${car.year} ${car.make} ${car.model}` : "Assessment"}
         </h1>
@@ -166,136 +167,91 @@ export default async function AssessmentDetailPage({
         </p>
       </header>
 
+      {/* Action bar — quick updates, kept on top. */}
+      <div className="mb-6 flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {result.ppsrEligible ? (
+            <PpsrButton assessmentId={row.id} size="sm" />
+          ) : row.history_status === "checked" ? (
+            <Badge className="border-border text-muted-foreground">
+              PPSR checked
+            </Badge>
+          ) : null}
+
+          {reviewed ? (
+            <Badge className={OK_BADGE}>
+              ✓ Reviewed{reviewedByYou ? " by you" : ""}
+            </Badge>
+          ) : (
+            <MarkReviewedDialog assessmentId={row.id} />
+          )}
+
+          {purchasePrice !== null ? (
+            <span className="inline-flex items-center gap-2">
+              <Badge className={OK_BADGE}>
+                Bought {formatAud(purchasePrice)}
+              </Badge>
+              <RecordPurchaseDialog
+                assessmentId={row.id}
+                triggerLabel="Edit"
+                triggerVariant="ghost"
+                defaultPrice={purchasePrice}
+                defaultNote={row.purchase_note}
+              />
+            </span>
+          ) : (
+            <RecordPurchaseDialog assessmentId={row.id} />
+          )}
+        </div>
+
+        {purchasePrice !== null && (
+          <p className="text-xs text-muted-foreground">
+            {row.purchased_at
+              ? `Purchased ${dateFmt.format(new Date(row.purchased_at))} — `
+              : ""}
+            {savings?.label === "saved" ? (
+              <span className="text-emerald-700 dark:text-emerald-500">
+                saved {formatAud(savings.amount)} vs asking ({formatAud(asking)})
+              </span>
+            ) : savings?.label === "over" ? (
+              <span className="text-rose-700 dark:text-rose-400">
+                {formatAud(savings.amount)} over asking ({formatAud(asking)})
+              </span>
+            ) : (
+              <span>paid the asking price ({formatAud(asking)})</span>
+            )}
+            .
+          </p>
+        )}
+      </div>
+
       <Verdict result={result} />
 
-      {/* Deferred PPSR — only offered while still in play (Buy/Check). */}
-      {result.ppsrEligible && (
-        <div className="mt-6 rounded-xl border border-border p-4">
-          <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
-            History check
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              PPSR not yet run (~$2 per search). Run it to confirm the car
-              isn&apos;t stolen, written off, or under finance.
-            </p>
-            <PpsrButton assessmentId={row.id} />
-          </div>
-        </div>
-      )}
-
-      {/* Human review */}
-      <div className="mt-6 rounded-xl border border-border p-4">
-        <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
-          Review
-        </p>
-        {row.review_status === "reviewed" ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-emerald-700 dark:text-emerald-500">
-              ✓ Reviewed
-              {row.reviewed_by && user?.id === row.reviewed_by ? " by you" : ""}
-              {row.reviewed_at
-                ? ` on ${dateFmt.format(new Date(row.reviewed_at))}`
-                : ""}
-              .
-            </p>
-            {row.reviewer_note && (
-              <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm text-foreground/80">
+      {/* Recorded notes. */}
+      {(row.reviewer_note || row.purchase_note) && (
+        <div className="mt-6 flex flex-col gap-3">
+          {row.reviewer_note && (
+            <div className="rounded-xl border border-border p-4">
+              <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+                Reviewer note
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-foreground/80">
                 {row.reviewer_note}
               </p>
-            )}
-          </div>
-        ) : (
-          <form action={review} className="flex flex-col gap-3">
-            <p className="text-sm text-muted-foreground">
-              Awaiting human review.
-            </p>
-            <Textarea
-              name="note"
-              rows={2}
-              placeholder="Add a note for the record (optional)…"
-              aria-label="Reviewer note"
-            />
-            <div>
-              <Button type="submit" size="sm">
-                Mark reviewed
-              </Button>
             </div>
-          </form>
-        )}
-      </div>
-
-      {/* Purchase — record the actual buy to track spend + savings. */}
-      <div className="mt-6 rounded-xl border border-border p-4">
-        <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
-          Purchase
-        </p>
-        {purchasePrice !== null ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm">
-              <span className="font-medium">
-                Purchased for {formatAud(purchasePrice)}
-              </span>
-              {row.purchased_at
-                ? ` on ${dateFmt.format(new Date(row.purchased_at))}`
-                : ""}
-              .{" "}
-              {savings?.label === "saved" ? (
-                <span className="text-emerald-700 dark:text-emerald-500">
-                  Saved {formatAud(savings.amount)} vs asking (
-                  {formatAud(asking)}).
-                </span>
-              ) : savings?.label === "over" ? (
-                <span className="text-rose-700 dark:text-rose-400">
-                  {formatAud(savings.amount)} over asking ({formatAud(asking)}).
-                </span>
-              ) : (
-                <span className="text-muted-foreground">
-                  Paid the asking price ({formatAud(asking)}).
-                </span>
-              )}
-            </p>
-            {row.purchase_note && (
-              <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm text-foreground/80">
+          )}
+          {row.purchase_note && (
+            <div className="rounded-xl border border-border p-4">
+              <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+                Purchase note
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-foreground/80">
                 {row.purchase_note}
               </p>
-            )}
-          </div>
-        ) : (
-          <form action={purchase} className="flex flex-col gap-3">
-            <p className="text-sm text-muted-foreground">
-              Bought this car? Record the price paid to track spend and savings.
-            </p>
-            <div className="relative max-w-[12rem]">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                $
-              </span>
-              <Input
-                name="price"
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                required
-                placeholder="Price paid"
-                aria-label="Purchase price"
-                className="pl-7 font-mono tabular-nums"
-              />
             </div>
-            <Textarea
-              name="note"
-              rows={2}
-              placeholder="Note (optional)…"
-              aria-label="Purchase note"
-            />
-            <div>
-              <Button type="submit" size="sm" variant="outline">
-                Record purchase
-              </Button>
-            </div>
-          </form>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
