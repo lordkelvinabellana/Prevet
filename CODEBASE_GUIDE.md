@@ -350,10 +350,14 @@ nicely.
   itself.)
 - **`src/lib/auth/dal.ts`** — `getUser()` / `requireUser()` are the
   database-backed auth checks used inside pages and the API.
-- **Row Level Security (RLS)** — defined in the SQL migration. The database
-  itself enforces that only authenticated users can read/insert, regardless of
-  app code. Anonymous access is denied. (Slice 1 decision: *any* logged-in user
-  can both create and review — no roles yet.)
+- **Row Level Security (RLS)** — defined in the SQL migrations. The database
+  itself enforces access, regardless of app code; anonymous access is denied.
+  **Per-user isolation** (migration `0005`): every row is owned via `created_by`
+  (default `auth.uid()`), and the policies scope read/update to the owner, so a
+  user sees and edits only their own assessments (and their cars/valuations/
+  history). The app never filters by `created_by` — RLS does. No roles / shared
+  view yet. (Slice 1 originally let any logged-in user read everything; `0005`
+  tightened it.)
 
 ### Database (`supabase/migrations/0001_init.sql`)
 Four tables: **cars**, **valuations**, **history_checks**, **assessments**. The
@@ -467,4 +471,4 @@ The fastest way to verify any claim above — open these.
 
 **UI:** offer card `Verdict` → `src/app/(app)/assess/verdict.tsx` (colours in `src/lib/verdict-style.ts`); form `buildPayload`/`validateField`/`runAssess` → `assess/assess-form.tsx`; `PpsrButton` → `assess/ppsr-button.tsx`; presets → `assess/presets.ts`; queue query `fetchFilteredAssessments` → `assessments/_query.ts`, stats `getAssessmentStats` → `assessments/_stats.ts`, CSV `csvCell`/`assessmentsToCsv` → `assessments/_csv.ts`; table/cards/toolbar/stat-cards in that folder; pure helpers `needsPpsr`/`buildSortHref`/`rowStatus`/`carLabel`/`purchaseSavings` → `assessments/_shared.ts`; detail action bar + dialogs → `assessments/[id]/page.tsx` (+ `record-purchase-dialog.tsx`, `mark-reviewed-dialog.tsx`); reports → `(app)/dashboard/page.tsx`; nav/theme → `(app)/main-nav.tsx`, `(app)/theme-toggle.tsx`.
 
-**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`, `0004_purchase`).
+**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`, `0004_purchase`, `0005_per_user_isolation`).

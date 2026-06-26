@@ -38,8 +38,10 @@ _defensible_ verdict and the most they should pay — not a black box.
   - written off → **Pass**
   - finance owing → **Check** (verify payout / clear encumbrance)
   - no valuation available → **Check** (can't price)
-- **Access model (Slice 1):** any authenticated user can both **create** and
-  **review**. No roles table yet.
+- **Access model:** **per-user isolation** (migration `0005`) — each user sees and
+  edits only their own assessments/cars/valuations/history, enforced by RLS
+  (`created_by = auth.uid()`). No roles / shared / admin view yet. (Slice 1
+  originally shipped a shared "all authenticated read all" model; `0005` tightened it.)
 - **Mock-only data:** no live RedBook / PPSR / Apify. Mocks are deterministic.
 - **Supabase project ref:** `cmwssucvqtaqkqosrumv`
   (`https://cmwssucvqtaqkqosrumv.supabase.co`).
@@ -264,8 +266,16 @@ another"** (fresh). Desktop keeps the live two-column flow unchanged. Driven by 
 derived `showResultStep` toggling visibility classes — no route change,
 client-only (`assess/assess-form.tsx`).
 
+### Per-user data isolation ✅
+
+Migration `0005_per_user_isolation` tightened the RLS read/update policies from the
+shared "all authenticated read all" model to **owner-only** (`created_by =
+auth.uid()` on cars/assessments; owning-car `exists(...)` on valuations/history).
+No app code changed — every query already runs through the user's RLS-scoped client.
+Proven at the SQL level: the owner sees their rows, a different `auth.uid()` sees 0.
+
 Current totals: **77 Vitest + 16/16 live Playwright**, tsc + build clean;
-migrations `0001`–`0004` applied.
+migrations `0001`–`0005` applied.
 
 ---
 

@@ -16,7 +16,7 @@ Supabase (Postgres + Auth + RLS) · Vitest. No FastAPI, no live RedBook/PPSR/Api
 ## Key product decisions (locked)
 - Max Offer = `selectedWholesaleValue − repairCost − riskBuffer`; risk buffer = **5%** of wholesale.
 - "Close to asking" band = **within 5% below** asking → Check; more than 5% below → Pass; ≥ asking → Buy.
-- Reviewer access: **any authenticated user** can create AND review (no roles table in Slice 1).
+- Access model: **per-user isolation** (migration `0005`) — each user sees/edits only their own rows, enforced by RLS (`created_by = auth.uid()`). No roles table yet. (Was a shared "all authenticated read all" model in Slice 1.)
 - Supabase project ref: **`cmwssucvqtaqkqosrumv`**; URL `https://cmwssucvqtaqkqosrumv.supabase.co`.
 
 ## Build chunks — status
@@ -189,6 +189,17 @@ desktop (commit `35203cc`, `assess/assess-form.tsx`):
 - Driven by a derived `showResultStep` (`result && !editing`) toggling visibility
   classes; no route change, client-only. 77 Vitest + **16/16 live Playwright**
   (new: mobile form→result→edit-details keeps values); tsc + build clean.
+
+## Per-user data isolation ✅
+Migration `0005_per_user_isolation` (applied via Supabase MCP) tightened the RLS
+read/update policies from the shared Slice-1 model to **owner-only** (`created_by
+= auth.uid()` on cars/assessments; owning-car `exists(...)` on valuations/history).
+Each signed-in user now sees and edits only their own assessments. **No app code
+changed** — queries already run through the user's RLS-scoped client. Proven at the
+SQL level (owner sees their rows; a different `auth.uid()` sees 0 across all four
+tables); 16/16 live Playwright still green (owner keeps full access). Data was never
+ephemeral — there's no delete path in the app; earlier disappearances were the
+end-of-session `delete from public.cars` cleanups, which have stopped.
 
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
