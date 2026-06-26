@@ -15,7 +15,7 @@ const STATUSES = [
 ];
 
 function chipClass(active: boolean): string {
-  return `inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+  return `inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
     active
       ? "border-transparent bg-primary text-primary-foreground"
       : "border-border bg-background hover:bg-muted"

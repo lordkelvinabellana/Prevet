@@ -7,12 +7,27 @@ import { Verdict } from "./verdict";
 import { PpsrButton } from "./ppsr-button";
 import { Guide } from "./guide";
 import { EMPTY_FORM, PRESETS, DOT, type FormValues } from "./presets";
+import { parseCarInput } from "@/lib/validation/schema";
 import type { AssessmentResponse } from "@/lib/assess/service";
 
 type FieldErrors = Record<string, string>;
 
 const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
 const text = (s: string) => (s.trim() === "" ? undefined : s.trim());
+
+function buildPayload(v: FormValues) {
+  return {
+    plate: text(v.plate),
+    vin: text(v.vin),
+    year: num(v.year),
+    make: text(v.make),
+    model: text(v.model),
+    trim: text(v.trim),
+    kilometres: num(v.kilometres),
+    sellerAskingPrice: num(v.sellerAskingPrice),
+    repairCost: num(v.repairCost),
+  };
+}
 
 function Field({
   label,
@@ -73,22 +88,24 @@ export function AssessForm() {
       });
     };
 
+  // Validate a single field on blur (server validation stays authoritative).
+  function validateField(name: string) {
+    if (!(name in values)) return;
+    const res = parseCarInput(buildPayload(values));
+    setFieldErrors((errs) => {
+      const next = { ...errs };
+      if (!res.ok && res.errors[name]) next[name] = res.errors[name];
+      else delete next[name];
+      return next;
+    });
+  }
+
   async function runAssess(v: FormValues) {
     setLoading(true);
     setFieldErrors({});
     setFormError(null);
 
-    const payload = {
-      plate: text(v.plate),
-      vin: text(v.vin),
-      year: num(v.year),
-      make: text(v.make),
-      model: text(v.model),
-      trim: text(v.trim),
-      kilometres: num(v.kilometres),
-      sellerAskingPrice: num(v.sellerAskingPrice),
-      repairCost: num(v.repairCost),
-    };
+    const payload = buildPayload(v);
 
     try {
       const res = await fetch("/api/assess", {
@@ -145,7 +162,7 @@ export function AssessForm() {
                 type="button"
                 onClick={() => applyPreset(p.values)}
                 disabled={loading}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50"
               >
                 <span className={`size-1.5 rounded-full ${DOT[p.outcome]}`} />
                 {p.tag}
@@ -163,6 +180,9 @@ export function AssessForm() {
             e.preventDefault();
             void runAssess(values);
           }}
+          onBlur={(e) =>
+            validateField((e.target as unknown as HTMLInputElement).name)
+          }
           noValidate
           className="flex flex-col gap-8"
         >

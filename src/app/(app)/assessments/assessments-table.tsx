@@ -87,7 +87,7 @@ export function AssessmentsTable({
               <TableCell className="w-full">
                 <Link
                   href={`/assessments/${row.id}`}
-                  className="whitespace-nowrap font-medium after:absolute after:inset-0"
+                  className="whitespace-nowrap rounded-sm font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {carLabel(row.cars)}
                 </Link>
@@ -109,7 +109,7 @@ export function AssessmentsTable({
                 {row.history_status === "checked" ? (
                   <span className="text-xs text-muted-foreground">Checked</span>
                 ) : needsPpsr(row) ? (
-                  <span className="text-xs text-amber-600 dark:text-amber-500">
+                  <span className="text-xs text-amber-700 dark:text-amber-500">
                     Pending
                   </span>
                 ) : (

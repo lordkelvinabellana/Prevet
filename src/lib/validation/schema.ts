@@ -24,7 +24,10 @@ const optionalText = z
   .transform((v) => (v && v.length > 0 ? v : undefined));
 
 const requiredText = (label: string) =>
-  z.string().trim().min(1, `${label} is required`);
+  z
+    .string({ message: `${label} is required` })
+    .trim()
+    .min(1, `${label} is required`);
 
 export const carInputSchema = z
   .object({

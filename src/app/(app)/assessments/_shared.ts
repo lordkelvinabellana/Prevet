@@ -27,7 +27,7 @@ export {
 export type Tone = "amber" | "emerald" | "muted";
 
 export const TONE_TEXT: Record<Tone, string> = {
-  amber: "text-amber-600 dark:text-amber-500",
+  amber: "text-amber-700 dark:text-amber-500",
   emerald: "text-emerald-600 dark:text-emerald-500",
   muted: "text-muted-foreground",
 };

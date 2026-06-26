@@ -33,4 +33,24 @@ test.describe("UI: theme + responsive form", () => {
     expect(vin).not.toBeNull();
     expect(vin!.y).toBeGreaterThan(plate!.y + 10);
   });
+
+  test("an invalid field shows an inline error on blur", async ({ page }) => {
+    await login(page);
+    await page.goto("/assess");
+    const make = page.getByLabel("Make");
+    await make.click();
+    await make.blur();
+    await expect(page.getByText("Make is required")).toBeVisible();
+  });
+
+  test("a non-existent assessment shows the not-found page", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto("/assessments/00000000-0000-0000-0000-000000000000");
+    await expect(page.getByText("Not found")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Back to assessments/i }),
+    ).toBeVisible();
+  });
 });
