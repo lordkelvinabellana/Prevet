@@ -78,4 +78,25 @@ test.describe("UI: theme + responsive form", () => {
     await page.goto("/assessments");
     await expect(page.getByText(/Bought \$22,000/).first()).toBeVisible();
   });
+
+  test("dashboard shows metrics and CSV export downloads", async ({ page }) => {
+    await login(page);
+    // Seed at least one assessment so there's data.
+    await page.goto("/assess");
+    await page.getByRole("button", { name: "Priced to buy" }).click();
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+
+    await page.goto("/dashboard");
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+    await expect(page.getByText("Verdicts")).toBeVisible();
+    await expect(page.getByText("Saved vs asking")).toBeVisible();
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("link", { name: "Export CSV" }).click(),
+    ]);
+    expect(download.suggestedFilename()).toBe("assessments.csv");
+  });
 });
