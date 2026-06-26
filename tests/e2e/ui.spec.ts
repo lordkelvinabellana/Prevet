@@ -79,6 +79,27 @@ test.describe("UI: theme + responsive form", () => {
     await expect(page.getByText(/Bought \$22,000/).first()).toBeVisible();
   });
 
+  test("on mobile, /assess is a two-step form → result flow", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    await page.goto("/assess");
+
+    // Step 1 — the form is the screen.
+    await expect(page.getByLabel("Plate")).toBeVisible();
+
+    // Submit (quick-fill) → step 2: result shows, the form is hidden.
+    await page.getByRole("button", { name: "Priced to buy" }).click();
+    await expect(page.getByText("Buy", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Plate")).toBeHidden();
+
+    // "Edit details" returns to the form with values intact (no data loss).
+    await page.getByRole("button", { name: /Edit details/ }).click();
+    await expect(page.getByLabel("Plate")).toBeVisible();
+    await expect(page.getByLabel("Seller asking")).toHaveValue("25000");
+  });
+
   test("dashboard shows metrics and CSV export downloads", async ({ page }) => {
     await login(page);
     // Seed at least one assessment so there's data.

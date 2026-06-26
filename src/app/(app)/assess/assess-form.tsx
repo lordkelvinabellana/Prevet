@@ -101,6 +101,13 @@ export function AssessForm() {
   // Set when the form is edited after a verdict — the shown verdict no longer
   // matches the inputs, so it's dimmed and its actions disabled until re-run.
   const [stale, setStale] = useState(false);
+  // On phones the form and result are two steps (the columns can't sit side by
+  // side). `editing` lets "Edit details" reveal the form again over a result
+  // without wiping it. On desktop (lg) both columns always show, so it's moot.
+  const [editing, setEditing] = useState(false);
+
+  // Mobile shows the result step once there's a verdict and we're not editing.
+  const showResultStep = result !== null && !editing;
 
   const set =
     (name: keyof FormValues) =>
@@ -148,6 +155,7 @@ export function AssessForm() {
       if (res.ok) {
         setResult(body as AssessmentResponse);
         setStale(false);
+        setEditing(false); // a fresh verdict ends any edit step
         // Land on the next-car action; bring the result into view on mobile.
         focusById("assess-another");
         scrollIntoViewById("result");
@@ -172,6 +180,7 @@ export function AssessForm() {
     setValues(v);
     setResult(null);
     setStale(false);
+    setEditing(false);
     void runAssess(v);
   }
 
@@ -181,6 +190,7 @@ export function AssessForm() {
     setFieldErrors({});
     setFormError(null);
     setStale(false);
+    setEditing(false);
   }
 
   // "Assess another" — wipe the form and jump back to the first field.
@@ -190,10 +200,23 @@ export function AssessForm() {
     scrollIntoViewById("plate");
   }
 
+  // "Edit details" (mobile) — reveal the form over the current result, values
+  // intact, so a typo fix doesn't mean re-entering the whole car.
+  function editDetails() {
+    setEditing(true);
+    focusById("plate");
+    scrollIntoViewById("plate");
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Toolbar: quick-fill scenarios + guide. */}
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Toolbar: quick-fill scenarios + guide. Belongs to intake, so it's
+          hidden on the mobile result step (still always shown on desktop). */}
+      <div
+        className={`${
+          showResultStep ? "hidden lg:flex" : "flex"
+        } flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between`}
+      >
         <div className="flex flex-col gap-2">
           <span className="text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
             Quick fill a scenario
@@ -227,7 +250,9 @@ export function AssessForm() {
             validateField((e.target as unknown as HTMLInputElement).name)
           }
           noValidate
-          className="flex flex-col gap-8"
+          className={`${
+            showResultStep ? "hidden lg:flex" : "flex"
+          } flex-col gap-8`}
         >
           <section>
             <Eyebrow>Identity</Eyebrow>
@@ -410,13 +435,31 @@ export function AssessForm() {
           id="result"
           role="status"
           aria-live="polite"
-          className="lg:sticky lg:top-6 lg:self-start"
+          className={`${
+            showResultStep ? "block" : "hidden lg:block"
+          } lg:sticky lg:top-6 lg:self-start`}
         >
           {result ? (
             <div className="flex flex-col gap-4">
-              <Button id="assess-another" size="lg" onClick={resetForNext}>
-                Assess another
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 lg:hidden"
+                  onClick={editDetails}
+                >
+                  ← Edit details
+                </Button>
+                <Button
+                  id="assess-another"
+                  size="lg"
+                  className="flex-1"
+                  onClick={resetForNext}
+                >
+                  Assess another
+                </Button>
+              </div>
               {stale && (
                 <p className="text-xs text-amber-700 dark:text-amber-500">
                   Inputs changed — re-run for an up-to-date verdict.
