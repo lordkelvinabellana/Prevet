@@ -73,6 +73,12 @@ Tests: **68 Vitest passing** + Playwright **8/8 against the live Supabase DB**
 (PPSR two-phase + table search/filter/sort/row-nav/mobile). `npx tsc --noEmit` +
 `next build` clean. Migrations `0001`, `0002` applied.
 
+### UX polish (post-Slice 3)
+Global nav added to the `(app)` layout (`main-nav.tsx`) — sticky header with
+brand mark + active-highlighted **New assessment** / **Assessments** links, so
+no more typing URLs. Home (`(app)/page.tsx`) reworked into a launchpad (hero +
+3-step how-it-works). Fixed the assessments table Car column wrapping.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer); reviewer notes on assessments.
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.

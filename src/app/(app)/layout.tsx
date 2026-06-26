@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/dal";
 import { Button } from "@/components/ui/button";
+import { MainNav } from "./main-nav";
 import { logout } from "./actions";
 
 /**
@@ -17,17 +18,31 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-border px-6 py-3">
-        <Link href="/" className="text-sm font-semibold tracking-tight">
-          Car Pre-Vetting Tool
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{user.email}</span>
-          <form action={logout}>
-            <Button type="submit" variant="outline" size="sm">
-              Sign out
-            </Button>
-          </form>
+      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-2 px-6">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+              C
+            </span>
+            <span className="hidden text-sm font-semibold tracking-tight sm:inline">
+              Car Pre-Vetting
+            </span>
+          </Link>
+          <span
+            className="mx-1 hidden h-5 w-px bg-border sm:block"
+            aria-hidden
+          />
+          <MainNav />
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden text-sm text-muted-foreground md:inline">
+              {user.email}
+            </span>
+            <form action={logout}>
+              <Button type="submit" variant="outline" size="sm">
+                Sign out
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="flex flex-1 flex-col">{children}</main>

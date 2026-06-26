@@ -68,7 +68,7 @@ export function AssessmentsTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>Verdict</TableHead>
-            <TableHead>Car</TableHead>
+            <TableHead className="w-full">Car</TableHead>
             <SortHead col="max_offer" label="Max offer" params={params} className="text-right" />
             <TableHead className="text-right">Asking</TableHead>
             <TableHead>PPSR</TableHead>
@@ -84,15 +84,15 @@ export function AssessmentsTable({
                   {VERDICT_LABEL[row.recommendation]}
                 </Badge>
               </TableCell>
-              <TableCell className="max-w-0">
+              <TableCell className="w-full">
                 <Link
                   href={`/assessments/${row.id}`}
-                  className="font-medium after:absolute after:inset-0"
+                  className="whitespace-nowrap font-medium after:absolute after:inset-0"
                 >
                   {carLabel(row.cars)}
                 </Link>
                 {row.cars?.plate && (
-                  <span className="block font-mono text-xs text-muted-foreground">
+                  <span className="block whitespace-nowrap font-mono text-xs text-muted-foreground">
                     {row.cars.plate}
                   </span>
                 )}
