@@ -61,8 +61,17 @@ export function AssessForm() {
 
   const set =
     (name: keyof FormValues) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setValues((v) => ({ ...v, [name]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setValues((v) => ({ ...v, [name]: value }));
+      // Clear a field's error as soon as the user starts fixing it.
+      setFieldErrors((errs) => {
+        if (!errs[name]) return errs;
+        const next = { ...errs };
+        delete next[name];
+        return next;
+      });
+    };
 
   async function runAssess(v: FormValues) {
     setLoading(true);
@@ -159,7 +168,7 @@ export function AssessForm() {
         >
           <section>
             <Eyebrow>Identity</Eyebrow>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Plate" name="plate" error={fieldErrors.plate}>
                 <Input
                   id="plate"
@@ -192,7 +201,7 @@ export function AssessForm() {
 
           <section>
             <Eyebrow>Vehicle</Eyebrow>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Make" name="make" error={fieldErrors.make}>
                 <Input
                   id="make"
@@ -223,6 +232,7 @@ export function AssessForm() {
                   onChange={set("year")}
                   placeholder="2018"
                   aria-invalid={Boolean(fieldErrors.year)}
+                  className="font-mono tabular-nums"
                 />
               </Field>
               <Field
@@ -239,6 +249,7 @@ export function AssessForm() {
                   onChange={set("kilometres")}
                   placeholder="90000"
                   aria-invalid={Boolean(fieldErrors.kilometres)}
+                  className="font-mono tabular-nums"
                 />
               </Field>
               <Field
@@ -261,38 +272,50 @@ export function AssessForm() {
 
           <section>
             <Eyebrow>Pricing</Eyebrow>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
-                label="Seller asking ($)"
+                label="Seller asking"
                 name="sellerAskingPrice"
                 error={fieldErrors.sellerAskingPrice}
               >
-                <Input
-                  id="sellerAskingPrice"
-                  name="sellerAskingPrice"
-                  type="number"
-                  inputMode="numeric"
-                  value={values.sellerAskingPrice}
-                  onChange={set("sellerAskingPrice")}
-                  placeholder="17000"
-                  aria-invalid={Boolean(fieldErrors.sellerAskingPrice)}
-                />
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="sellerAskingPrice"
+                    name="sellerAskingPrice"
+                    type="number"
+                    inputMode="numeric"
+                    value={values.sellerAskingPrice}
+                    onChange={set("sellerAskingPrice")}
+                    placeholder="17,000"
+                    aria-invalid={Boolean(fieldErrors.sellerAskingPrice)}
+                    className="pl-7 font-mono tabular-nums"
+                  />
+                </div>
               </Field>
               <Field
-                label="Est. repairs ($)"
+                label="Est. repairs"
                 name="repairCost"
                 error={fieldErrors.repairCost}
               >
-                <Input
-                  id="repairCost"
-                  name="repairCost"
-                  type="number"
-                  inputMode="numeric"
-                  value={values.repairCost}
-                  onChange={set("repairCost")}
-                  placeholder="500"
-                  aria-invalid={Boolean(fieldErrors.repairCost)}
-                />
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="repairCost"
+                    name="repairCost"
+                    type="number"
+                    inputMode="numeric"
+                    value={values.repairCost}
+                    onChange={set("repairCost")}
+                    placeholder="500"
+                    aria-invalid={Boolean(fieldErrors.repairCost)}
+                    className="pl-7 font-mono tabular-nums"
+                  />
+                </div>
               </Field>
             </div>
           </section>
