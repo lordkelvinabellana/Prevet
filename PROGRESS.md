@@ -116,8 +116,18 @@ notes), so a non-technical reviewer can cross-reference inputs → verdict. Plum
 the valuation range columns through `runHistoryCheck` + the detail query (were
 nulled). `verdict.tsx`. 72 Vitest + 12/12 live Playwright.
 
+## Purchase tracking + dashboard UX ✅
+Record the actual buy and report on it. Migration `0004_purchase` (price/at/
+note/by on assessments). `recordPurchase` action; detail Purchase panel showing
+**saved vs asking** (`purchaseSavings`); an "Open & record purchase" action on the
+assess result. Dashboard gains a **Deals** strip (Purchased · Total spent · Saved)
+above the pipeline counts + a **Purchased** filter; table/cards restyled for
+hierarchy (bold max offer, muted secondary, coloured status, "Bought $X").
+75 Vitest + 13/13 live Playwright; migrations `0001`–`0004` applied.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
+- Projected margin / resale revenue (deferred); edit/re-run; CSV export; deploy.
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
 - Generated Supabase types (`supabase gen types`) replacing hand-written `db.ts`.
 - Edit/re-run an assessment; CSV export; pagination beyond the 500 cap.

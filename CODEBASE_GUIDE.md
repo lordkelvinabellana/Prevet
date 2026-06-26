@@ -362,8 +362,10 @@ Four tables: **cars**, **valuations**, **history_checks**, **assessments**. The
 and a `breakdown` (JSON) capturing every number — plus the PPSR/review lifecycle
 fields (`history_status`, `review_status`, `reviewed_by`, `reviewed_at`,
 `reviewer_note`). That stored `breakdown` is what lets the detail page redraw the
-exact same offer card later. Schema changes are versioned migrations applied via
-the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`.
+exact same offer card later, plus the purchase record (`purchase_price`,
+`purchased_at`, `purchase_note`). Schema changes are versioned migrations applied
+via the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`,
+`0004_purchase`.
 
 ### The UI
 - **assess-form.tsx** collects the car and POSTs to `/api/assess`.
@@ -445,7 +447,7 @@ The fastest way to verify any claim above — open these.
 
 **API routes:** `POST /api/assess` → `src/app/api/assess/route.ts`; `POST /api/assessments/[id]/ppsr` → `src/app/api/assessments/[id]/ppsr/route.ts`.
 
-**Auth & data access:** `getUser()` / `requireUser()` → `src/lib/auth/dal.ts`; `updateSession(req)` → `src/lib/supabase/session.ts`; route gate `proxy()` → `src/proxy.ts`; Supabase clients → `src/lib/supabase/{server,client}.ts`; `login` → `src/app/login/actions.ts`; `logout` → `src/app/(app)/actions.ts`; `markReviewed(id, formData)` → `src/app/(app)/assessments/actions.ts`.
+**Auth & data access:** `getUser()` / `requireUser()` → `src/lib/auth/dal.ts`; `updateSession(req)` → `src/lib/supabase/session.ts`; route gate `proxy()` → `src/proxy.ts`; Supabase clients → `src/lib/supabase/{server,client}.ts`; `login` → `src/app/login/actions.ts`; `logout` → `src/app/(app)/actions.ts`; `markReviewed` / `recordPurchase` → `src/app/(app)/assessments/actions.ts`; deal/savings helper `purchaseSavings` → `assessments/_shared.ts`.
 
 **UI:** offer card `Verdict` → `src/app/(app)/assess/verdict.tsx` (colours in `src/lib/verdict-style.ts`); form `buildPayload`/`validateField`/`runAssess` → `assess/assess-form.tsx`; `PpsrButton` → `assess/ppsr-button.tsx`; presets → `assess/presets.ts`; dashboard `computeStats` + query → `assessments/page.tsx`; table/cards/toolbar/stat-cards in that folder; pure helpers `needsPpsr`/`buildSortHref`/`rowStatus`/`carLabel` → `assessments/_shared.ts`; detail → `assessments/[id]/page.tsx`; nav/theme → `(app)/main-nav.tsx`, `(app)/theme-toggle.tsx`.
 
