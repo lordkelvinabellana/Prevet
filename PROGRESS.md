@@ -125,12 +125,33 @@ above the pipeline counts + a **Purchased** filter; table/cards restyled for
 hierarchy (bold max offer, muted secondary, coloured status, "Bought $X").
 75 Vitest + 13/13 live Playwright; migrations `0001`–`0004` applied.
 
+## Reporting pass — top action dialogs · CSV export · /dashboard ✅
+Made the tool reportable for a supervisor (commits `aeb1b11`, `c45ba99`, `47c8804`).
+- **Detail top action bar** (`assessments/[id]/page.tsx`): the actions moved
+  *above* the verdict. PPSR / **Mark reviewed** / **Record purchase** are buttons
+  that open radix **popup dialogs** (`record-purchase-dialog.tsx`,
+  `mark-reviewed-dialog.tsx` — form `action` → server action in a `startTransition`
+  → closes on success; `revalidatePath` refreshes). State shows as badges
+  ("✓ Reviewed", "Bought $X" + Edit) with a saved-vs-asking line.
+- **Filter-aware CSV export**: shared `fetchFilteredAssessments` (`_query.ts`) +
+  `getAssessmentStats` (`_stats.ts`) extracted from `/assessments`; new
+  `GET /api/assessments/export` streams `text/csv` honouring the *same* filters
+  (Purchased filter → deals export). `_csv.ts` (`csvCell` + `assessmentsToCsv`,
+  unit-tested). "Export CSV" button on `/assessments` carries the current params.
+- **Dedicated `/dashboard`** (`(app)/dashboard/page.tsx`): supervisor reports —
+  Deals money story (Purchased · Total spent · Saved vs asking), verdict
+  breakdown with CSS bars, pipeline counts, Export CSV / New assessment CTAs;
+  empty state. Added **Dashboard** to the nav (which now scrolls on narrow
+  screens). `/assessments` stays the working queue.
+- Tests: **77 Vitest** + **14/14 live Playwright** (purchase-via-dialog,
+  mark-reviewed-via-dialog, dashboard metrics + CSV download). `tsc` + build clean.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
-- Projected margin / resale revenue (deferred); edit/re-run; CSV export; deploy.
+- Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
 - Generated Supabase types (`supabase gen types`) replacing hand-written `db.ts`.
-- Edit/re-run an assessment; CSV export; pagination beyond the 500 cap.
+- Pagination beyond the 500 result cap.
 
 ## Local env needed before running the app (Chunk 6+)
 Create **`.env.local`** (gitignored) from `.env.example`:

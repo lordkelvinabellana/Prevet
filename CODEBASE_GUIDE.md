@@ -376,14 +376,23 @@ via the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`,
   ranges + selected value, and the PPSR checks as Clear/Flagged — so the inputs
   behind the verdict are visible and cross-referenceable. The same component is
   reused on the assessment detail page.
-- **`assessments/` (the dashboard)** lists every saved verdict as a sortable,
+- **`assessments/` (the working queue)** lists every saved verdict as a sortable,
   filterable, searchable table (cards on mobile) with summary stat cards. All
   state lives in the URL (`?verdict=&status=&q=&sort=&dir=`), so views are
-  shareable and the back button works. Filtering/sorting happen in the DB query;
-  the small pure helpers live in `assessments/_shared.ts`.
-- **Review** — the detail page lets a reviewer add an optional **note** and
-  **Mark reviewed** (`assessments/actions.ts`); the note renders under the
-  reviewed line. **Dark mode** (system preference + a header toggle), route
+  shareable and the back button works. Filtering/sorting happen in the shared DB
+  query (`assessments/_query.ts` → `fetchFilteredAssessments`); stats in
+  `assessments/_stats.ts`; the small pure helpers in `assessments/_shared.ts`.
+  **Export CSV** streams the *current filtered view* via
+  `GET /api/assessments/export` (so the Purchased filter → a deals export).
+- **`dashboard/`** is the supervisor reports page: the Deals money story
+  (Purchased · Total spent · Saved vs asking), a verdict breakdown with CSS bars,
+  and pipeline counts — reusing `getAssessmentStats`. `/assessments` stays the
+  working queue.
+- **Review & buy** — the detail page puts the actions in a **top bar above the
+  verdict**: PPSR, **Mark reviewed**, and **Record purchase** are buttons that
+  open popup dialogs (`record-purchase-dialog.tsx` / `mark-reviewed-dialog.tsx` →
+  the `assessments/actions.ts` server actions); state shows as badges with a
+  saved-vs-asking line. **Dark mode** (system preference + a header toggle), route
   **loading skeletons**, and **not-found / error** boundaries round out the polish.
 
 ---
@@ -445,10 +454,10 @@ The fastest way to verify any claim above — open these.
 
 **Orchestration (two-phase):** `runPriceAssessment({…})` (phase 1) and `runHistoryCheck({…})` (phase 2 / PPSR), plus the `AssessmentResponse` payload type → `src/lib/assess/service.ts`.
 
-**API routes:** `POST /api/assess` → `src/app/api/assess/route.ts`; `POST /api/assessments/[id]/ppsr` → `src/app/api/assessments/[id]/ppsr/route.ts`.
+**API routes:** `POST /api/assess` → `src/app/api/assess/route.ts`; `POST /api/assessments/[id]/ppsr` → `src/app/api/assessments/[id]/ppsr/route.ts`; `GET /api/assessments/export` (filter-aware CSV) → `src/app/api/assessments/export/route.ts`.
 
 **Auth & data access:** `getUser()` / `requireUser()` → `src/lib/auth/dal.ts`; `updateSession(req)` → `src/lib/supabase/session.ts`; route gate `proxy()` → `src/proxy.ts`; Supabase clients → `src/lib/supabase/{server,client}.ts`; `login` → `src/app/login/actions.ts`; `logout` → `src/app/(app)/actions.ts`; `markReviewed` / `recordPurchase` → `src/app/(app)/assessments/actions.ts`; deal/savings helper `purchaseSavings` → `assessments/_shared.ts`.
 
-**UI:** offer card `Verdict` → `src/app/(app)/assess/verdict.tsx` (colours in `src/lib/verdict-style.ts`); form `buildPayload`/`validateField`/`runAssess` → `assess/assess-form.tsx`; `PpsrButton` → `assess/ppsr-button.tsx`; presets → `assess/presets.ts`; dashboard `computeStats` + query → `assessments/page.tsx`; table/cards/toolbar/stat-cards in that folder; pure helpers `needsPpsr`/`buildSortHref`/`rowStatus`/`carLabel` → `assessments/_shared.ts`; detail → `assessments/[id]/page.tsx`; nav/theme → `(app)/main-nav.tsx`, `(app)/theme-toggle.tsx`.
+**UI:** offer card `Verdict` → `src/app/(app)/assess/verdict.tsx` (colours in `src/lib/verdict-style.ts`); form `buildPayload`/`validateField`/`runAssess` → `assess/assess-form.tsx`; `PpsrButton` → `assess/ppsr-button.tsx`; presets → `assess/presets.ts`; queue query `fetchFilteredAssessments` → `assessments/_query.ts`, stats `getAssessmentStats` → `assessments/_stats.ts`, CSV `csvCell`/`assessmentsToCsv` → `assessments/_csv.ts`; table/cards/toolbar/stat-cards in that folder; pure helpers `needsPpsr`/`buildSortHref`/`rowStatus`/`carLabel`/`purchaseSavings` → `assessments/_shared.ts`; detail action bar + dialogs → `assessments/[id]/page.tsx` (+ `record-purchase-dialog.tsx`, `mark-reviewed-dialog.tsx`); reports → `(app)/dashboard/page.tsx`; nav/theme → `(app)/main-nav.tsx`, `(app)/theme-toggle.tsx`.
 
-**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`).
+**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`, `0004_purchase`).
