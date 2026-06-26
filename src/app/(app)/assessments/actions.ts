@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
  * Mark an assessment as reviewed. Any authenticated user may review (Slice 1
  * has no roles); the `assessments_update_authenticated` RLS policy allows it.
  */
-export async function markReviewed(id: string) {
+export async function markReviewed(id: string, formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,12 +17,16 @@ export async function markReviewed(id: string) {
     redirect("/login");
   }
 
+  const raw = formData.get("note");
+  const note = typeof raw === "string" && raw.trim() !== "" ? raw.trim() : null;
+
   const { error } = await supabase
     .from("assessments")
     .update({
       review_status: "reviewed",
       reviewed_by: user.id,
       reviewed_at: new Date().toISOString(),
+      reviewer_note: note,
     })
     .eq("id", id);
 

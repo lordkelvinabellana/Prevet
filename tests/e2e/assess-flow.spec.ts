@@ -37,8 +37,10 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     const row = page.getByRole("link", { name: /Toyota Corolla/ }).first();
     await expect(row).toBeVisible();
     await row.click();
+    await page.getByLabel("Reviewer note").fill("Looks clean, proceed.");
     await page.getByRole("button", { name: "Mark reviewed" }).click();
     await expect(page.getByText(/Reviewed/)).toBeVisible();
+    await expect(page.getByText("Looks clean, proceed.")).toBeVisible();
   });
 
   test("PPSR flips a provisional Buy to Check when finance is owing", async ({

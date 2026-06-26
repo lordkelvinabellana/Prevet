@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/dal";
 import { Verdict } from "../../assess/verdict";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { PpsrButton } from "../../assess/ppsr-button";
 import { markReviewed } from "../actions";
 import type { PricingBreakdown } from "@/lib/pricing/engine";
@@ -28,6 +29,7 @@ interface DetailRow {
   review_status: "pending" | "reviewed";
   reviewed_at: string | null;
   reviewed_by: string | null;
+  reviewer_note: string | null;
   created_at: string;
   cars: {
     year: number;
@@ -164,25 +166,38 @@ export default async function AssessmentDetailPage({
           Review
         </p>
         {row.review_status === "reviewed" ? (
-          <p className="text-sm text-emerald-700 dark:text-emerald-500">
-            ✓ Reviewed
-            {row.reviewed_by && user?.id === row.reviewed_by ? " by you" : ""}
-            {row.reviewed_at
-              ? ` on ${dateFmt.format(new Date(row.reviewed_at))}`
-              : ""}
-            .
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-emerald-700 dark:text-emerald-500">
+              ✓ Reviewed
+              {row.reviewed_by && user?.id === row.reviewed_by ? " by you" : ""}
+              {row.reviewed_at
+                ? ` on ${dateFmt.format(new Date(row.reviewed_at))}`
+                : ""}
+              .
+            </p>
+            {row.reviewer_note && (
+              <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm text-foreground/80">
+                {row.reviewer_note}
+              </p>
+            )}
+          </div>
         ) : (
-          <div className="flex items-center justify-between gap-4">
+          <form action={review} className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               Awaiting human review.
             </p>
-            <form action={review}>
+            <Textarea
+              name="note"
+              rows={2}
+              placeholder="Add a note for the record (optional)…"
+              aria-label="Reviewer note"
+            />
+            <div>
               <Button type="submit" size="sm">
                 Mark reviewed
               </Button>
-            </form>
-          </div>
+            </div>
+          </form>
         )}
       </div>
     </div>

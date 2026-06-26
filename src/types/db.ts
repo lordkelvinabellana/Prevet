@@ -59,6 +59,7 @@ export interface AssessmentRow {
   review_status: "pending" | "reviewed";
   reviewed_by: string | null;
   reviewed_at: string | null;
+  reviewer_note: string | null;
   created_by: string;
   created_at: string;
 }
