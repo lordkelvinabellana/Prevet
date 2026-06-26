@@ -102,7 +102,7 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
+    <div className="@container flex flex-col gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
       {result.provisional && (
         <div className="rounded-lg border border-amber-600/30 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-500">
           Provisional — based on price only. Run a PPSR history check to confirm
@@ -187,9 +187,9 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
 
       {/* Source data — the mock RedBook / PPSR inputs behind the verdict,
           so the result can be cross-referenced. */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 @lg:grid-cols-2">
         <div className="rounded-xl border border-border p-4">
-          <p className="mb-1 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+          <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
             Valuation · {valuation.source}
           </p>
           {valuation.selectedWholesaleValue !== null ? (
@@ -197,19 +197,19 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
               {valuation.wholesaleLow !== null &&
                 valuation.wholesaleHigh !== null && (
                   <SourceRow
-                    label="Wholesale range"
+                    label="Wholesale"
                     value={`${formatAud(valuation.wholesaleLow)} – ${formatAud(valuation.wholesaleHigh)}`}
                   />
                 )}
               {valuation.retailLow !== null &&
                 valuation.retailHigh !== null && (
                   <SourceRow
-                    label="Retail range"
+                    label="Retail"
                     value={`${formatAud(valuation.retailLow)} – ${formatAud(valuation.retailHigh)}`}
                   />
                 )}
               <SourceRow
-                label="Selected wholesale"
+                label="Selected"
                 value={formatAud(valuation.selectedWholesaleValue)}
               />
             </>

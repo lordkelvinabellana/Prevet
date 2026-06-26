@@ -25,8 +25,8 @@ test.describe("assessment flow (two-phase: price → PPSR)", () => {
     const ppsr = page.getByRole("button", { name: /Run PPSR check/ });
     await expect(ppsr).toBeVisible();
 
-    // Source data: RedBook ranges show; PPSR not run yet.
-    await expect(page.getByText(/Wholesale range/i)).toBeVisible();
+    // Source data: RedBook valuation panel shows; PPSR not run yet.
+    await expect(page.getByText(/Valuation ·/)).toBeVisible();
     await expect(page.getByText(/Not checked yet/i)).toBeVisible();
 
     // Phase 2: run PPSR. Clean car → stays Buy, history checks populate.
