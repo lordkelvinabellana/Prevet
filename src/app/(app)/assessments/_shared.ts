@@ -17,24 +17,12 @@ export interface AssessmentListItem {
   } | null;
 }
 
-export const VERDICT_LABEL: Record<Recommendation, string> = {
-  buy: "Buy",
-  check: "Check",
-  pass: "Pass",
-};
-
-export const VERDICT_PILL: Record<Recommendation, string> = {
-  buy: "border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-400",
-  check:
-    "border-amber-600/30 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/30 dark:text-amber-500",
-  pass: "border-rose-600/30 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-950/30 dark:text-rose-400",
-};
-
-export const VERDICT_DOT: Record<Recommendation, string> = {
-  buy: "bg-emerald-500",
-  check: "bg-amber-500",
-  pass: "bg-rose-500",
-};
+// Verdict colour tokens live in one place; re-exported here for the dashboard.
+export {
+  VERDICT_LABEL,
+  VERDICT_PILL,
+  VERDICT_DOT,
+} from "@/lib/verdict-style";
 
 export type Tone = "amber" | "emerald" | "muted";
 

@@ -1,6 +1,11 @@
 import { formatAud } from "@/lib/pricing/explain";
-import type { Recommendation } from "@/lib/pricing/reason-codes";
 import type { AssessmentResponse } from "@/lib/assess/service";
+import {
+  VERDICT_LABEL,
+  VERDICT_BLURB,
+  VERDICT_BAND,
+  VERDICT_TEXT,
+} from "@/lib/verdict-style";
 
 /**
  * The offer card — the product's hero. Renders the deterministic engine's
@@ -8,30 +13,6 @@ import type { AssessmentResponse } from "@/lib/assess/service";
  * max-offer figure in tabular monospace, and the calculation as a subtraction
  * ledger so the number is checkable at a glance.
  */
-
-const VERDICT: Record<
-  Recommendation,
-  { label: string; blurb: string; band: string; text: string }
-> = {
-  buy: {
-    label: "Buy",
-    blurb: "Within budget — clear to proceed.",
-    band: "border-emerald-600/30 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-950/30",
-    text: "text-emerald-700 dark:text-emerald-400",
-  },
-  check: {
-    label: "Check",
-    blurb: "Needs a human look before buying.",
-    band: "border-amber-600/30 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-950/30",
-    text: "text-amber-700 dark:text-amber-500",
-  },
-  pass: {
-    label: "Pass",
-    blurb: "Walk away from this one.",
-    band: "border-rose-600/30 bg-rose-50 dark:border-rose-500/20 dark:bg-rose-950/30",
-    text: "text-rose-700 dark:text-rose-400",
-  },
-};
 
 function LedgerRow({
   label,
@@ -74,7 +55,7 @@ function Flag({ tone, children }: { tone: "rose" | "amber"; children: string }) 
 }
 
 export function Verdict({ result }: { result: AssessmentResponse }) {
-  const v = VERDICT[result.recommendation];
+  const rec = result.recommendation;
   const { breakdown, valuation, history } = result;
   const hasValuation = breakdown.maxOffer !== null;
 
@@ -96,15 +77,19 @@ export function Verdict({ result }: { result: AssessmentResponse }) {
       )}
 
       {/* Verdict band — the one bold element. */}
-      <div className={`flex items-start justify-between gap-4 rounded-xl border p-5 ${v.band}`}>
+      <div
+        className={`flex items-start justify-between gap-4 rounded-xl border p-5 ${VERDICT_BAND[rec]}`}
+      >
         <div>
           <p className="text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
             Recommendation
           </p>
-          <p className={`mt-0.5 text-3xl font-bold tracking-tight ${v.text}`}>
-            {v.label}
+          <p className={`mt-0.5 text-3xl font-bold tracking-tight ${VERDICT_TEXT[rec]}`}>
+            {VERDICT_LABEL[rec]}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">{v.blurb}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {VERDICT_BLURB[rec]}
+          </p>
         </div>
         <div className="text-right">
           <p className="text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
