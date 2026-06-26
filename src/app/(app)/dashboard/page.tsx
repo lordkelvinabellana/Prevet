@@ -54,8 +54,8 @@ export default async function DashboardPage() {
     : 0;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-10">
-      <header className="mb-8 flex items-end justify-between gap-4">
+    <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Deals and pipeline at a glance.</p>

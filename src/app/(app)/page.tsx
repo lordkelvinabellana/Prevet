@@ -21,12 +21,12 @@ const STEPS = [
 
 export default function HomePage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-12 px-6 py-16">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-12 px-4 py-12 sm:px-6 sm:py-16">
       <div className="flex flex-col gap-5">
         <span className="text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
           CarWow WA · pre-vetting
         </span>
-        <h1 className="max-w-2xl text-4xl font-semibold tracking-tight">
+        <h1 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
           Decide what a car is worth — before you buy it.
         </h1>
         <p className="max-w-xl text-lg text-muted-foreground">

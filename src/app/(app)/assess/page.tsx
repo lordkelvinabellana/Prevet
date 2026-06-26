@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function AssessPage() {
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-10">
+    <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
       <header className="mb-8 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Pre-vet a car</h1>
         <p className="text-muted-foreground">

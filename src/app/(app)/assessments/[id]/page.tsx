@@ -141,7 +141,7 @@ export default async function AssessmentDetailPage({
   const reviewedByYou = row.reviewed_by != null && user?.id === row.reviewed_by;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-6 py-10">
+    <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
       <Link
         href="/assessments"
         className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -153,7 +153,7 @@ export default async function AssessmentDetailPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           {car ? `${car.year} ${car.make} ${car.model}` : "Assessment"}
         </h1>
-        <p className="font-mono text-sm text-muted-foreground">
+        <p className="font-mono text-sm break-words text-muted-foreground">
           {[
             car?.trim,
             car?.kilometres != null
