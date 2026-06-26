@@ -79,6 +79,18 @@ brand mark + active-highlighted **New assessment** / **Assessments** links, so
 no more typing URLs. Home (`(app)/page.tsx`) reworked into a launchpad (hero +
 3-step how-it-works). Fixed the assessments table Car column wrapping.
 
+### Polish & hardening pass (no paid API)
+- **Logic**: new `OFFER_NON_VIABLE` reason code → Pass when repairs + buffer
+  exceed value (instead of a confusing negative offer); model-year bound bumped
+  (max 2027); "Reviewed by you" attribution on the detail page.
+- **DRY**: verdict colour/label tokens centralized in `src/lib/verdict-style.ts`.
+- **Dark mode**: wired — `.dark` + system preference + nav toggle, no FOUC.
+- **Form/login**: mobile single-column (`grid-cols-1 sm:grid-cols-2`), `$` mono
+  money inputs, clear-error-on-edit, login brand mark. Design context in
+  `.impeccable.md`.
+- Tests: **72 Vitest** + **10/10 live Playwright** (non-viable engine cases,
+  dark-toggle persistence, mobile single-column).
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer); reviewer notes on assessments.
 - A real RedBook valuation adapter (and real PPSR) behind the existing interfaces.
