@@ -46,4 +46,9 @@ describe("explain (template, no AI)", () => {
     const text = explain(assess(baseInput({ history: null })));
     expect(text.toLowerCase()).toContain("provisional");
   });
+
+  it("explains a non-viable offer (repairs exceed value)", () => {
+    const text = explain(assess(baseInput({ repairCost: 20000 })));
+    expect(text.toLowerCase()).toContain("exceed");
+  });
 });

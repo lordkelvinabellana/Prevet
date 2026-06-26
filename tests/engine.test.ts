@@ -92,6 +92,33 @@ describe("assess — missing valuation => Check", () => {
   });
 });
 
+describe("assess — non-viable offer (repairs + buffer exceed value)", () => {
+  it("max offer below zero => Pass with OFFER_NON_VIABLE", () => {
+    const r = assess(baseInput({ repairCost: 20000 }));
+    expect(r.maxOffer).toBeLessThan(0);
+    expect(r.recommendation).toBe("pass");
+    expect(r.reasonCodes).toEqual([REASON_CODE.OFFER_NON_VIABLE]);
+  });
+
+  it("max offer exactly zero is non-viable (boundary)", () => {
+    // wholesale 18000 − 900 buffer − repair = 0 => repair 17100
+    const r = assess(baseInput({ repairCost: 17100 }));
+    expect(r.maxOffer).toBe(0);
+    expect(r.recommendation).toBe("pass");
+    expect(r.reasonCodes).toEqual([REASON_CODE.OFFER_NON_VIABLE]);
+  });
+
+  it("history hard stops still take precedence over non-viability", () => {
+    const r = assess(
+      baseInput({
+        repairCost: 20000,
+        history: { financeOwing: false, stolen: true, writtenOff: false },
+      }),
+    );
+    expect(r.reasonCodes).toEqual([REASON_CODE.HISTORY_STOLEN]);
+  });
+});
+
 describe("assess — offer vs asking price", () => {
   it("max offer >= asking => Buy", () => {
     // wholesale 18000 -> maxOffer 15900; asking 15000 -> Buy

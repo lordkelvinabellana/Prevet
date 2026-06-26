@@ -28,6 +28,8 @@ function explainCode(code: ReasonCode, result: PricingResult): string {
       return "Finance is owing on this vehicle. Verify the payout amount and clear the encumbrance before proceeding.";
     case REASON_CODE.VALUATION_MISSING:
       return "No valuation is available for this vehicle, so a max offer cannot be calculated. Obtain a valuation before deciding.";
+    case REASON_CODE.OFFER_NON_VIABLE:
+      return `Repairs of ${formatAud(breakdown.repairCost)} plus the risk buffer exceed the wholesale value of ${formatAud(breakdown.selectedWholesaleValue)} — there is no viable offer.`;
     case REASON_CODE.OFFER_AT_OR_ABOVE_ASKING:
       return `Max offer of ${formatAud(breakdown.maxOffer)} is at or above the seller's asking price of ${formatAud(breakdown.sellerAskingPrice)}.`;
     case REASON_CODE.OFFER_CLOSE_TO_ASKING:

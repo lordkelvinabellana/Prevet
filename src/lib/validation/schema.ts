@@ -8,8 +8,9 @@ import { z } from "zod";
  * Validation is deterministic and explicit; it never guesses or auto-corrects.
  */
 
-/** Keep in sync with the valuation mock's depreciation anchor. */
-const REFERENCE_YEAR = 2025;
+/** Upper bound for model year is REFERENCE_YEAR + 1. This is an input limit,
+ *  independent of the valuation mock's depreciation anchor. */
+const REFERENCE_YEAR = 2026;
 const EARLIEST_YEAR = 1900;
 const MAX_KILOMETRES = 2_000_000;
 const MAX_PRICE = 10_000_000;

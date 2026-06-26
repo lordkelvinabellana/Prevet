@@ -98,13 +98,14 @@ export function calculateMaxOffer(
  *
  * Decision order (first match wins — Pass-causing conditions are listed first,
  * so this ordering also encodes precedence):
- *   1. stolen        -> Pass
- *   2. written off   -> Pass
- *   3. finance owing -> Check
- *   4. no valuation  -> Check
- *   5. offer >= ask  -> Buy
- *   6. offer within close band below ask -> Check
- *   7. offer clearly below ask -> Pass
+ *   1. stolen          -> Pass
+ *   2. written off     -> Pass
+ *   3. finance owing   -> Check
+ *   4. no valuation    -> Check
+ *   5. max offer <= 0  -> Pass (repairs + buffer exceed the car's value)
+ *   6. offer >= ask    -> Buy
+ *   7. offer within close band below ask -> Check
+ *   8. offer clearly below ask -> Pass
  */
 export function assess(input: PricingInput): PricingResult {
   const riskBufferRate = input.riskBufferRate ?? RISK_BUFFER_RATE;
@@ -160,7 +161,12 @@ export function assess(input: PricingInput): PricingResult {
     return result("check", REASON_CODE.VALUATION_MISSING);
   }
 
-  // 5/6/7: compare max offer against the seller's asking price.
+  // 5: repairs + risk buffer exceed the car's value — no viable offer.
+  if (maxOffer <= 0) {
+    return result("pass", REASON_CODE.OFFER_NON_VIABLE);
+  }
+
+  // 6/7/8: compare max offer against the seller's asking price.
   const asking = input.sellerAskingPrice;
   if (maxOffer >= asking) {
     return result("buy", REASON_CODE.OFFER_AT_OR_ABOVE_ASKING);

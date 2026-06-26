@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth/dal";
 import { Verdict } from "../../assess/verdict";
 import { Button } from "@/components/ui/button";
 import { PpsrButton } from "../../assess/ppsr-button";
@@ -26,6 +27,7 @@ interface DetailRow {
   history_status: "not_checked" | "checked";
   review_status: "pending" | "reviewed";
   reviewed_at: string | null;
+  reviewed_by: string | null;
   created_at: string;
   cars: {
     year: number;
@@ -58,6 +60,7 @@ export default async function AssessmentDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const user = await getUser();
   const { data } = await supabase
     .from("assessments")
     .select(
@@ -163,6 +166,7 @@ export default async function AssessmentDetailPage({
         {row.review_status === "reviewed" ? (
           <p className="text-sm text-emerald-700 dark:text-emerald-500">
             ✓ Reviewed
+            {row.reviewed_by && user?.id === row.reviewed_by ? " by you" : ""}
             {row.reviewed_at
               ? ` on ${dateFmt.format(new Date(row.reviewed_at))}`
               : ""}
