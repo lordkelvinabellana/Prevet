@@ -232,7 +232,18 @@ Make the tool reportable for a supervisor:
   Total spent · Saved vs asking) + verdict bars + pipeline; "Dashboard" added to
   the nav. `/assessments` stays the working queue.
 
-Current totals: **77 Vitest + 14/14 live Playwright**, tsc + build clean;
+### Assess UX — fast next-car loop ✅
+
+Triaging the next car no longer means hand-clearing fields. An **"Assess
+another"** button at the top of the result column wipes the form, clears the
+result, and focuses Plate (focus also lands there after a verdict, so Enter
+starts the next car). Editing a field after a verdict marks it **stale** — the
+offer card dims and its actions (Run PPSR / Open & record purchase, which point
+at the old assessment) are withdrawn behind an "Inputs changed — re-run" note;
+re-running clears it. Result column got `role="status" aria-live`; mobile scrolls
+the result into view after submit. Client-only (`assess/assess-form.tsx`).
+
+Current totals: **77 Vitest + 15/15 live Playwright**, tsc + build clean;
 migrations `0001`–`0004` applied.
 
 ---

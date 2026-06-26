@@ -146,6 +146,22 @@ Made the tool reportable for a supervisor (commits `aeb1b11`, `c45ba99`, `47c880
 - Tests: **77 Vitest** + **14/14 live Playwright** (purchase-via-dialog,
   mark-reviewed-via-dialog, dashboard metrics + CSV download). `tsc` + build clean.
 
+## Assess UX — fast next-car loop ✅
+Triaging the next car no longer means hand-clearing every field (commit
+`fce773e`, all in `assess/assess-form.tsx`):
+- **"Assess another"** primary button at the top of the result column wipes the
+  form, clears the result, and focuses **Plate**. Focus also lands there after a
+  verdict, so Enter starts the next car.
+- **Stale verdict**: editing any field after a verdict dims the offer card to
+  0.6, withdraws its actions (Run PPSR / Open & record purchase — they point at
+  the *old* assessment), and shows an amber "Inputs changed — re-run" note;
+  re-running clears it. A shown verdict can never look like it matches
+  freshly-typed inputs.
+- Result column got `role="status" aria-live="polite"`; on mobile the result
+  scrolls into view after submit and Plate scrolls back after reset.
+- 77 Vitest + **15/15 live Playwright** (new: edit → stale → "Assess another"
+  resets); tsc + build clean.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.
