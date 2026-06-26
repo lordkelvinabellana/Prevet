@@ -70,6 +70,10 @@ job:
 └──────────────────┘      └────────────────────────────────────┘
 ```
 
+*(The orchestration is now **two-phase** — `runPriceAssessment` then, on demand,
+`runHistoryCheck` for PPSR; see §4.8. The diagram above shows the single
+conceptual pipeline.)*
+
 **Why split it this way?** The pricing engine is *isolated and pure* — it takes
 numbers and booleans in, returns a decision out, touches no database, no
 network, no AI. That makes it trivial to test, impossible to make
@@ -110,7 +114,8 @@ src/
       mock-triggers.ts         the "magic token" scenario system + a hash function
       types.ts                 adapter interfaces + AdapterError
     validation/schema.ts       the zod input rules (what a valid car looks like)
-    assess/service.ts          runAssessment() — the orchestration described above
+    verdict-style.ts           Buy/Pass/Check colour + label tokens (one source)
+    assess/service.ts          runPriceAssessment + runHistoryCheck (two-phase)
     supabase/                  database/auth clients + session refresh
     auth/dal.ts                getUser() / requireUser()
   proxy.ts                     Next.js 16's renamed "middleware": refresh session + gate routes
@@ -167,12 +172,13 @@ price considerations.
 2. Is it written off?       → PASS   (hard stop)
 3. Is finance owing?        → CHECK  (must verify/clear the debt first)
 4. Is there no valuation?   → CHECK  (can't price it — go get a valuation)
-5. maxOffer ≥ asking?       → BUY    (you can meet or beat their price)
-6. maxOffer within 5% below asking?  → CHECK  (close — negotiation might close the gap)
-7. otherwise (well below)   → PASS   (their price is too high for you)
+5. maxOffer ≤ 0?            → PASS   (repairs + buffer exceed the car's value — no viable offer)
+6. maxOffer ≥ asking?       → BUY    (you can meet or beat their price)
+7. maxOffer within 5% below asking?  → CHECK  (close — negotiation might close the gap)
+8. otherwise (well below)   → PASS   (their price is too high for you)
 ```
 
-Steps 1–4 are about *safety and data*; steps 5–7 are about *price*. Notice that
+Steps 1–4 are about *safety and data*; steps 5–8 are about *price/viability*. Notice that
 a stolen car returns **Pass** even though a max offer was still calculated — the
 number exists, but the hard stop overrides it.
 
@@ -197,6 +203,7 @@ Every decision returns one or more **reason codes** (from
 | `HISTORY_WRITTEN_OFF`       | Pass           | On the Written-Off Vehicle Register.               |
 | `HISTORY_FINANCE_OWING`     | Check          | Finance still owing — clear the debt first.        |
 | `VALUATION_MISSING`         | Check          | No valuation, so no max offer can be computed.     |
+| `OFFER_NON_VIABLE`          | Pass           | Repairs + risk buffer exceed the car's value (max offer ≤ 0). |
 | `OFFER_AT_OR_ABOVE_ASKING`  | Buy            | Max offer ≥ asking price.                          |
 | `OFFER_CLOSE_TO_ASKING`     | Check          | Max offer within 5% below asking (negotiable).     |
 | `OFFER_BELOW_ASKING`        | Pass           | Max offer clearly below asking.                    |
@@ -352,9 +359,11 @@ nicely.
 Four tables: **cars**, **valuations**, **history_checks**, **assessments**. The
 `assessments` row stores the engine's full output — `recommendation`,
 `max_offer`, `risk_buffer`, the `reason_codes`, the human-readable `reasoning`,
-and a `breakdown` (JSON) capturing every number — plus review fields
-(`review_status`, `reviewed_by`, `reviewed_at`). That stored `breakdown` is what
-lets the detail page redraw the exact same offer card later.
+and a `breakdown` (JSON) capturing every number — plus the PPSR/review lifecycle
+fields (`history_status`, `review_status`, `reviewed_by`, `reviewed_at`,
+`reviewer_note`). That stored `breakdown` is what lets the detail page redraw the
+exact same offer card later. Schema changes are versioned migrations applied via
+the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`.
 
 ### The UI
 - **assess-form.tsx** collects the car and POSTs to `/api/assess`.
@@ -367,6 +376,10 @@ lets the detail page redraw the exact same offer card later.
   state lives in the URL (`?verdict=&status=&q=&sort=&dir=`), so views are
   shareable and the back button works. Filtering/sorting happen in the DB query;
   the small pure helpers live in `assessments/_shared.ts`.
+- **Review** — the detail page lets a reviewer add an optional **note** and
+  **Mark reviewed** (`assessments/actions.ts`); the note renders under the
+  reviewed line. **Dark mode** (system preference + a header toggle), route
+  **loading skeletons**, and **not-found / error** boundaries round out the polish.
 
 ---
 
@@ -399,5 +412,38 @@ Paste this whole file in and try prompts like:
 - "If I wanted to change the risk buffer to 7%, what's the single line to edit
   and what else would I need to update (tests, docs)?"
 
-For exact, current code, the source of truth is `src/lib/pricing/engine.ts`,
-`reason-codes.ts`, and `explain.ts`.
+**What to paste (priority order):** (1) **this whole file** — it includes the
+function map in §9; (2) **`PLAN.md`**; (3) the engine trio
+`src/lib/pricing/{engine,reason-codes,explain}.ts`; (4) optionally
+`src/lib/assess/service.ts` (the two-phase orchestration) and
+`src/lib/validation/schema.ts`. With those, ChatGPT can answer line-level
+questions, not just conceptual ones.
+
+---
+
+## 9. Function & file map (inspect it yourself)
+
+The fastest way to verify any claim above — open these.
+
+**Pricing engine (the decision):**
+- `assess(input)` → `src/lib/pricing/engine.ts` — the whole verdict (max offer + Buy/Pass/Check + reason codes + `provisional`).
+- `calculateMaxOffer(...)` → `src/lib/pricing/engine.ts` — the arithmetic; `RISK_BUFFER_RATE` / `CLOSE_BAND_RATE` constants live here too.
+- `REASON_CODE`, `Recommendation` → `src/lib/pricing/reason-codes.ts`.
+- `explain(result)`, `formatAud(n)` → `src/lib/pricing/explain.ts`.
+
+**Mock data sources:**
+- `mockValuationAdapter.getValuation(car)` → `src/lib/adapters/valuation.mock.ts`.
+- `mockHistoryAdapter.getHistory(car)` → `src/lib/adapters/history.mock.ts`.
+- `TRIGGER`, `hasTrigger`, `hashString` → `src/lib/adapters/mock-triggers.ts`; `AdapterError` + interfaces → `src/lib/adapters/types.ts`.
+
+**Validation:** `carInputSchema`, `parseCarInput(input)` → `src/lib/validation/schema.ts`.
+
+**Orchestration (two-phase):** `runPriceAssessment({…})` (phase 1) and `runHistoryCheck({…})` (phase 2 / PPSR), plus the `AssessmentResponse` payload type → `src/lib/assess/service.ts`.
+
+**API routes:** `POST /api/assess` → `src/app/api/assess/route.ts`; `POST /api/assessments/[id]/ppsr` → `src/app/api/assessments/[id]/ppsr/route.ts`.
+
+**Auth & data access:** `getUser()` / `requireUser()` → `src/lib/auth/dal.ts`; `updateSession(req)` → `src/lib/supabase/session.ts`; route gate `proxy()` → `src/proxy.ts`; Supabase clients → `src/lib/supabase/{server,client}.ts`; `login` → `src/app/login/actions.ts`; `logout` → `src/app/(app)/actions.ts`; `markReviewed(id, formData)` → `src/app/(app)/assessments/actions.ts`.
+
+**UI:** offer card `Verdict` → `src/app/(app)/assess/verdict.tsx` (colours in `src/lib/verdict-style.ts`); form `buildPayload`/`validateField`/`runAssess` → `assess/assess-form.tsx`; `PpsrButton` → `assess/ppsr-button.tsx`; presets → `assess/presets.ts`; dashboard `computeStats` + query → `assessments/page.tsx`; table/cards/toolbar/stat-cards in that folder; pure helpers `needsPpsr`/`buildSortHref`/`rowStatus`/`carLabel` → `assessments/_shared.ts`; detail → `assessments/[id]/page.tsx`; nav/theme → `(app)/main-nav.tsx`, `(app)/theme-toggle.tsx`.
+
+**Data model:** row types → `src/types/db.ts`; schema + RLS → `supabase/migrations/0001_init.sql` (+ `0002_history_status`, `0003_reviewer_note`).

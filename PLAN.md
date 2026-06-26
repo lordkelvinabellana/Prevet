@@ -19,8 +19,9 @@ polish. Every result carries reason codes and a plain-English explanation so a
 human can check the math.
 
 ### Who it's for
+
 Dealership staff appraising many cars a day. They need a fast, trustworthy,
-*defensible* verdict and the most they should pay — not a black box.
+_defensible_ verdict and the most they should pay — not a black box.
 
 ---
 
@@ -54,12 +55,14 @@ Dealership staff appraising many cars a day. They need a fast, trustworthy,
 - **Fonts:** IBM Plex Sans (UI) + IBM Plex Mono (all figures/data)
 
 ### Next.js 16 gotchas (this is NOT older Next.js)
+
 - `middleware` is renamed to **`proxy`** → entry is `src/proxy.ts`, Node.js
   runtime. (See `node_modules/next/dist/docs/.../proxy.md`.)
 - `cookies()` is **async** (`await cookies()`).
 - Route handlers / server actions verify auth themselves (proxy excludes `/api`).
 
 ### Layered design
+
 ```
 UI (forms, offer card)                         src/app/(app)/**
   → POST /api/assess (auth + validate)         src/app/api/assess/route.ts
@@ -68,6 +71,7 @@ UI (forms, offer card)                         src/app/(app)/**
       → pricing engine (pure, deterministic)    src/lib/pricing/**   ← decides price
       → persistence (Supabase, RLS-scoped)      src/lib/supabase/**
 ```
+
 The pricing engine is isolated and pure: no I/O, no DB, no AI. Adapters
 implement interfaces so real RedBook/PPSR integrations can drop in later without
 touching the engine or orchestration.
@@ -105,17 +109,18 @@ Decision order (first match wins): stolen → written off → finance owing →
 no valuation → offer≥asking → offer within close band → offer below asking.
 
 ### Mock adapters (`src/lib/adapters/`)
+
 Deterministic functions of car identity (no randomness). **Scenario tokens**
 (case-insensitive substring of plate or VIN) force outcomes:
 
-| Token      | Effect                                   |
-| ---------- | ---------------------------------------- |
-| `STOLEN`   | history flags stolen → Pass              |
-| `WOVR`     | history flags written off → Pass         |
-| `FINANCE`  | history flags finance owing → Check      |
-| `NOVAL`    | valuation returns no value → Check        |
-| `FAILVAL`  | valuation adapter throws (outage) → 503  |
-| `FAILHIST` | history adapter throws (outage) → 503    |
+| Token      | Effect                                  |
+| ---------- | --------------------------------------- |
+| `STOLEN`   | history flags stolen → Pass             |
+| `WOVR`     | history flags written off → Pass        |
+| `FINANCE`  | history flags finance owing → Check     |
+| `NOVAL`    | valuation returns no value → Check      |
+| `FAILVAL`  | valuation adapter throws (outage) → 503 |
+| `FAILHIST` | history adapter throws (outage) → 503   |
 
 A thrown `AdapterError` is an **outage** (→ 503, nothing persisted), distinct
 from an adapter succeeding with a null valuation (→ engine Check).
@@ -128,6 +133,7 @@ PPSR searches cost ~$2, so history is deferred behind a user-approved step and
 skipped entirely on a price Pass.
 
 **Phase 1 — `POST /api/assess`** (`runPriceAssessment`)
+
 - Auth: 401 if no session. Body: `carInputSchema` (zod); 400 on invalid input/JSON.
 - Flow: validate → valuation lookup (no PPSR) → engine with `history: null` →
   persist car/valuation/assessment (`history_status='not_checked'`) → 201 with a
@@ -136,6 +142,7 @@ skipped entirely on a price Pass.
 - Valuation `AdapterError` → 503, nothing persisted.
 
 **Phase 2 — `POST /api/assessments/[id]/ppsr`** (`runHistoryCheck`)
+
 - Auth: 401. Runs the paid PPSR check → re-runs the engine with history →
   **finalizes the assessment in place** (Buy can flip to Pass/Check), inserts the
   `history_checks` row, sets `history_status='checked'`. Returns the final
@@ -149,21 +156,22 @@ used by `/assess` and the `/assessments/[id]` detail view.
 
 ## 7. Build chunks
 
-| # | Chunk | Status | Notes |
-|---|-------|--------|-------|
-| 1 | Scaffold | ✅ `83d5767` | Next.js+TS+Tailwind+shadcn, Vitest, `.env.example`, Supabase MCP, agent skills |
-| 2 | Pricing engine | ✅ `f1e8b26` | Pure deterministic `assess()` + reason codes + explain + tests |
-| 3 | Mock adapters | ✅ `8295690` | Valuation + history mocks, triggers, `AdapterError` + tests |
-| 4 | Validation | ✅ `54e2fce` | `carInputSchema` (zod) + `parseCarInput` + tests |
-| 5 | DB layer | ✅ `1c09664` | Migration SQL, `types/db.ts`, supabase client helpers |
-| — | Apply migration | ✅ 2026-06-25 | Applied via Supabase MCP; 4 tables, RLS on |
-| 6 | Auth | ✅ `34671ef` | `proxy.ts` session refresh + gate, `(app)` group, login + Server Action, DAL, sign-out |
-| 7 | API orchestration | ✅ `eb39a77` | `/api/assess` + `runAssessment` service + tests |
-| 8 | UI | ✅ `b2d70ff`, `a4291fe` | `/assess` form + hero offer card (verdict + ledger); quick-fill presets + guide dialog |
-| 9 | History + review | ✅ `dac0c6a` | `/assessments` list + `/assessments/[id]` detail + "Mark reviewed" |
-| 10 | E2E + README | ✅ | Playwright (unauth-redirect + happy path + finance edge) + README. **Slice 1 complete.** |
+| #   | Chunk             | Status                  | Notes                                                                                    |
+| --- | ----------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
+| 1   | Scaffold          | ✅ `83d5767`            | Next.js+TS+Tailwind+shadcn, Vitest, `.env.example`, Supabase MCP, agent skills           |
+| 2   | Pricing engine    | ✅ `f1e8b26`            | Pure deterministic `assess()` + reason codes + explain + tests                           |
+| 3   | Mock adapters     | ✅ `8295690`            | Valuation + history mocks, triggers, `AdapterError` + tests                              |
+| 4   | Validation        | ✅ `54e2fce`            | `carInputSchema` (zod) + `parseCarInput` + tests                                         |
+| 5   | DB layer          | ✅ `1c09664`            | Migration SQL, `types/db.ts`, supabase client helpers                                    |
+| —   | Apply migration   | ✅ 2026-06-25           | Applied via Supabase MCP; 4 tables, RLS on                                               |
+| 6   | Auth              | ✅ `34671ef`            | `proxy.ts` session refresh + gate, `(app)` group, login + Server Action, DAL, sign-out   |
+| 7   | API orchestration | ✅ `eb39a77`            | `/api/assess` + `runAssessment` service + tests                                          |
+| 8   | UI                | ✅ `b2d70ff`, `a4291fe` | `/assess` form + hero offer card (verdict + ledger); quick-fill presets + guide dialog   |
+| 9   | History + review  | ✅ `dac0c6a`            | `/assessments` list + `/assessments/[id]` detail + "Mark reviewed"                       |
+| 10  | E2E + README      | ✅                      | Playwright (unauth-redirect + happy path + finance edge) + README. **Slice 1 complete.** |
 
 ### Slice 2 — Deferred PPSR (two-phase) ✅
+
 Built locally and verified live. Engine gains a price-only `provisional` mode
 (`history: null`); service splits into `runPriceAssessment` + `runHistoryCheck`;
 new `POST /api/assessments/[id]/ppsr`; migration `0002_history_status` (applied);
@@ -171,12 +179,28 @@ UI provisional banner + "Run PPSR check (~$2)" button (Buy/Check only) + list
 "PPSR pending". 62 Vitest + 4/4 live Playwright; tsc + build clean.
 
 ### Slice 3 — Verdicts table dashboard ✅
+
 `/assessments` upgraded from a list to a dashboard: global stat cards, a client
 toolbar (debounced search + verdict/status filter chips), a sortable desktop
 table (`components/ui/table.tsx` + `assessments-table.tsx`) with a mobile card
 fallback — all driven by URL params. DB-side filter/sort/cap + in-memory search;
 pure helpers in `_shared.ts` (unit-tested). New `components/ui/{table,badge}.tsx`;
 no new deps. 68 Vitest + 8/8 live Playwright; tsc + build clean.
+
+### Slice 4 — Reviewer notes ✅
+
+Optional free-text note when marking an assessment reviewed (migration
+`0003_reviewer_note`). Entered via a Textarea in the detail review form, shown
+under the reviewed line.
+
+### Polish passes ✅ (no paid API)
+
+Global nav + home launchpad; engine `OFFER_NON_VIABLE` (repairs+buffer exceed
+value → Pass); centralized verdict tokens (`src/lib/verdict-style.ts`); **dark
+mode** (system + toggle); form ergonomics (mobile single-column, `$` mono inputs,
+inline on-blur validation); **loading skeletons** + **not-found/error**
+boundaries; light a11y pass. Current totals: **72 Vitest + 12/12 live Playwright**,
+tsc + build clean; migrations `0001`–`0003` applied.
 
 ---
 
