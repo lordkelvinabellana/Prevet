@@ -254,7 +254,17 @@ no horizontal overflow at 375px across all routes. Table↔card swap, toolbar, a
 dialogs were already mobile-safe; button/touch-target sizing left as the
 intentional compact scale.
 
-Current totals: **77 Vitest + 15/15 live Playwright**, tsc + build clean;
+### Two-step assess flow on mobile ✅
+
+The side-by-side `/assess` layout only earns its keep on desktop (seeing inputs
+next to the verdict ledger). On a phone it became a long scroll, so mobile is now
+two steps: form is the screen → submit → result is the screen (form + scenario
+toolbar hidden), with **"← Edit details"** (back, values intact) and **"Assess
+another"** (fresh). Desktop keeps the live two-column flow unchanged. Driven by a
+derived `showResultStep` toggling visibility classes — no route change,
+client-only (`assess/assess-form.tsx`).
+
+Current totals: **77 Vitest + 16/16 live Playwright**, tsc + build clean;
 migrations `0001`–`0004` applied.
 
 ---

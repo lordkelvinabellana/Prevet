@@ -373,7 +373,9 @@ via the Supabase MCP: `0001_init`, `0002_history_status`, `0003_reviewer_note`,
   resets the form for the next car (and is auto-focused after a verdict). Editing
   a field after a verdict marks it **stale** — the offer card dims and its
   actions are withdrawn behind an "Inputs changed — re-run" note — so a shown
-  verdict never looks like it matches freshly-typed inputs.
+  verdict never looks like it matches freshly-typed inputs. On **desktop** the
+  form and result sit side by side; on **mobile** they're two steps (form →
+  result), with "← Edit details" to go back without losing the entered car.
 - **verdict.tsx** renders the result as an "appraisal docket": a colored
   Buy/Pass/Check band, the max offer, and a **subtraction ledger** showing
   `wholesale − repairs − buffer = max offer` so the number is checkable at a

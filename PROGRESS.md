@@ -177,6 +177,19 @@ A responsive sweep at ~375–390px (commit `1ee8ac5`, className-only):
 - Left as-is (already mobile-safe): table↔card swap at `md`, the toolbar, the
   radix dialogs. Touch-target/button-size redesign deliberately out of scope.
 
+## Two-step assess flow on mobile ✅
+On a phone the side-by-side `/assess` layout degraded into a long scroll with the
+verdict hidden below a tall form. Now it's two steps on mobile, side-by-side on
+desktop (commit `35203cc`, `assess/assess-form.tsx`):
+- Mobile: form is the screen → submit → result is the screen (form + scenario
+  toolbar hidden). **"← Edit details"** returns to the form with values intact
+  (a typo fix no longer wipes the car); **"Assess another"** starts fresh.
+- Desktop (`lg`): unchanged — form + sticky result both visible, tweak-and-re-run
+  with the stale-verdict dimming.
+- Driven by a derived `showResultStep` (`result && !editing`) toggling visibility
+  classes; no route change, client-only. 77 Vitest + **16/16 live Playwright**
+  (new: mobile form→result→edit-details keeps values); tsc + build clean.
+
 ### Possible next slices (not started)
 - Roles (creator vs reviewer).
 - Projected margin / resale revenue (deferred); edit/re-run an assessment; deploy.
