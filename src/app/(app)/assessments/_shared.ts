@@ -8,6 +8,7 @@ export interface AssessmentListItem {
   max_offer: number | string | null;
   history_status: "not_checked" | "checked";
   review_status: "pending" | "reviewed";
+  purchase_price: number | string | null;
   cars: {
     year: number;
     make: string;
@@ -80,4 +81,16 @@ export function buildSortHref(
 
 export function carLabel(cars: AssessmentListItem["cars"]): string {
   return cars ? `${cars.year} ${cars.make} ${cars.model}` : "Unknown car";
+}
+
+/** Savings on a purchase vs the seller's asking price. */
+export function purchaseSavings(
+  asking: number,
+  price: number,
+): { amount: number; label: "saved" | "over" | "even" } {
+  const diff = asking - price;
+  return {
+    amount: Math.abs(diff),
+    label: diff > 0 ? "saved" : diff < 0 ? "over" : "even",
+  };
 }

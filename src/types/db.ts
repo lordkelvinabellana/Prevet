@@ -60,6 +60,10 @@ export interface AssessmentRow {
   reviewed_by: string | null;
   reviewed_at: string | null;
   reviewer_note: string | null;
+  purchase_price: number | null;
+  purchased_at: string | null;
+  purchase_note: string | null;
+  purchased_by: string | null;
   created_by: string;
   created_at: string;
 }

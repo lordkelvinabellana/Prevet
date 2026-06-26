@@ -4,6 +4,7 @@ import {
   rowStatus,
   buildSortHref,
   carLabel,
+  purchaseSavings,
   type AssessmentListItem,
 } from "@/app/(app)/assessments/_shared";
 
@@ -15,6 +16,7 @@ function item(overrides: Partial<AssessmentListItem> = {}): AssessmentListItem {
     max_offer: 28712,
     history_status: "not_checked",
     review_status: "pending",
+    purchase_price: null,
     cars: {
       year: 2018,
       make: "Toyota",
@@ -72,5 +74,23 @@ describe("carLabel", () => {
   it("formats the car, or falls back when missing", () => {
     expect(carLabel(item().cars)).toBe("2018 Toyota Corolla");
     expect(carLabel(null)).toBe("Unknown car");
+  });
+});
+
+describe("purchaseSavings", () => {
+  it("computes savings under asking", () => {
+    expect(purchaseSavings(25000, 22000)).toEqual({
+      amount: 3000,
+      label: "saved",
+    });
+  });
+  it("flags paying over asking", () => {
+    expect(purchaseSavings(25000, 26000)).toEqual({
+      amount: 1000,
+      label: "over",
+    });
+  });
+  it("flags paying exactly asking", () => {
+    expect(purchaseSavings(25000, 25000)).toEqual({ amount: 0, label: "even" });
   });
 });

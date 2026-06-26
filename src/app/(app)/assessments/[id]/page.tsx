@@ -5,9 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/dal";
 import { Verdict } from "../../assess/verdict";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PpsrButton } from "../../assess/ppsr-button";
-import { markReviewed } from "../actions";
+import { markReviewed, recordPurchase } from "../actions";
+import { purchaseSavings } from "../_shared";
+import { formatAud } from "@/lib/pricing/explain";
 import type { PricingBreakdown } from "@/lib/pricing/engine";
 import type { Recommendation, ReasonCode } from "@/lib/pricing/reason-codes";
 import type { AssessmentResponse } from "@/lib/assess/service";
@@ -30,6 +33,9 @@ interface DetailRow {
   reviewed_at: string | null;
   reviewed_by: string | null;
   reviewer_note: string | null;
+  purchase_price: number | string | null;
+  purchased_at: string | null;
+  purchase_note: string | null;
   created_at: string;
   cars: {
     year: number;
@@ -127,6 +133,11 @@ export default async function AssessmentDetailPage({
   };
 
   const review = markReviewed.bind(null, row.id);
+  const purchase = recordPurchase.bind(null, row.id);
+  const asking = row.breakdown.sellerAskingPrice;
+  const purchasePrice = numOrNull(row.purchase_price);
+  const savings =
+    purchasePrice !== null ? purchaseSavings(asking, purchasePrice) : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -208,6 +219,78 @@ export default async function AssessmentDetailPage({
             <div>
               <Button type="submit" size="sm">
                 Mark reviewed
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Purchase — record the actual buy to track spend + savings. */}
+      <div className="mt-6 rounded-xl border border-border p-4">
+        <p className="mb-2 text-[0.7rem] font-medium uppercase tracking-widest text-muted-foreground">
+          Purchase
+        </p>
+        {purchasePrice !== null ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm">
+              <span className="font-medium">
+                Purchased for {formatAud(purchasePrice)}
+              </span>
+              {row.purchased_at
+                ? ` on ${dateFmt.format(new Date(row.purchased_at))}`
+                : ""}
+              .{" "}
+              {savings?.label === "saved" ? (
+                <span className="text-emerald-700 dark:text-emerald-500">
+                  Saved {formatAud(savings.amount)} vs asking (
+                  {formatAud(asking)}).
+                </span>
+              ) : savings?.label === "over" ? (
+                <span className="text-rose-700 dark:text-rose-400">
+                  {formatAud(savings.amount)} over asking ({formatAud(asking)}).
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Paid the asking price ({formatAud(asking)}).
+                </span>
+              )}
+            </p>
+            {row.purchase_note && (
+              <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm text-foreground/80">
+                {row.purchase_note}
+              </p>
+            )}
+          </div>
+        ) : (
+          <form action={purchase} className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              Bought this car? Record the price paid to track spend and savings.
+            </p>
+            <div className="relative max-w-[12rem]">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                $
+              </span>
+              <Input
+                name="price"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                required
+                placeholder="Price paid"
+                aria-label="Purchase price"
+                className="pl-7 font-mono tabular-nums"
+              />
+            </div>
+            <Textarea
+              name="note"
+              rows={2}
+              placeholder="Note (optional)…"
+              aria-label="Purchase note"
+            />
+            <div>
+              <Button type="submit" size="sm" variant="outline">
+                Record purchase
               </Button>
             </div>
           </form>

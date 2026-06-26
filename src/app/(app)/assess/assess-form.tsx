@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Verdict } from "./verdict";
@@ -373,6 +374,11 @@ export function AssessForm() {
                   onResult={setResult}
                 />
               )}
+              <Button asChild variant="outline" size="lg">
+                <Link href={`/assessments/${result.assessmentId}`}>
+                  Open & record purchase
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="flex min-h-64 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border p-8 text-center">
