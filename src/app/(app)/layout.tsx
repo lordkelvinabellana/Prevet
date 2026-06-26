@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/dal";
 import { Button } from "@/components/ui/button";
 import { MainNav } from "./main-nav";
+import { ThemeToggle } from "./theme-toggle";
 import { logout } from "./actions";
 
 /**
@@ -33,7 +34,8 @@ export default async function AppLayout({
             aria-hidden
           />
           <MainNav />
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             <span className="hidden text-sm text-muted-foreground md:inline">
               {user.email}
             </span>

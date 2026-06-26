@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   description: "Deterministic used-car pre-vetting for CarWow WA.",
 };
 
+// Set the theme before paint (no flash): user choice, else system preference.
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,9 +32,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {children}
+      </body>
     </html>
   );
 }
