@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -21,6 +22,15 @@ export default function LoginPage() {
           </div>
         </div>
         <LoginForm />
+        <p className="mt-4 text-sm text-muted-foreground">
+          New here?{" "}
+          <Link
+            href="/signup"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Create an account
+          </Link>
+        </p>
       </div>
     </main>
   );

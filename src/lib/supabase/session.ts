@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabasePublicEnv } from "./env";
 
 /** Public paths reachable without a session. Everything else requires auth. */
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/signup"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(
@@ -57,8 +57,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Already signed in but sitting on /login -> send home.
-  if (user && pathname === "/login") {
+  // Already signed in but sitting on /login or /signup -> send home.
+  if (user && (pathname === "/login" || pathname === "/signup")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/";
     return NextResponse.redirect(redirectUrl);
